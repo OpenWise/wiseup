@@ -1,0 +1,3 @@
+Layer Pairs Export File for PCB: G:\Altium\V_project\Archive\V_project\New folder\V_arduino_1.PcbDoc
+LayersSetName=Top_Bot_Thru_Holes|DrillFile=v_arduino_1-roundholes.txt|LayerPairs=gtl,gbl
+LayersSetName=Top_Bot_Slot_Holes|DrillFile=v_arduino_1-slotholes.txt|LayerPairs=gtl,gbl

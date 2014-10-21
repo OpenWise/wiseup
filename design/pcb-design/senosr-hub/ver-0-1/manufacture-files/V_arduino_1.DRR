@@ -1,0 +1,20 @@
+---------------------------------------------------------------------------
+NCDrill File Report For: V_arduino_1.PcbDoc   8/20/2013  8:12:08 AM
+---------------------------------------------------------------------------
+
+Layer Pair : Top Layer to Bottom Layer
+ASCII RoundHoles File : V_arduino_1-RoundHoles.TXT
+ASCII SlotHoles File : V_arduino_1-SlotHoles.TXT
+EIA File   : V_arduino_1.DRL
+
+Tool         Hole Size           Hole Type     Hole Count Plated       Tool Travel
+---------------------------------------------------------------------------
+T1        0.3mm (11.811mil)        Round          35               244.77 mm (9.64 Inch)
+T2        0.7mm (27.559mil)        Slot           2                7328.42 mm (288.52 Inch)
+T3        1mm (39.37mil)           Round          30               98.64 mm (3.88 Inch)
+T4        1.1mm (43.307mil)        Round          40               121.26 mm (4.77 Inch)
+T5        3.5mm (137.795mil)       Round          3                67.51 mm (2.66 Inch)
+---------------------------------------------------------------------------
+Totals                                            110              7860.61 mm (309.47 Inch)
+
+Total Processing Time (hh:mm:ss) : 00:00:00

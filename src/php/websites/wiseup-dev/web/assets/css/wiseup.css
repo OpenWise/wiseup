@@ -1,0 +1,81 @@
+.wiseup-gray-icon {
+    color:#C3C3C3;
+    font-size:40px;
+}
+
+.wiseup-orange-2-icon {
+    color:#FEB902;
+    font-size:40px;
+}
+
+.viseup-blue-value {
+    color:#0083C9;
+}
+
+.wiseup-px-20-gray-icon {
+    color:#C3C3C3;
+    font-size:20px;
+}
+
+.wiseup-profile-gray-icon {
+    color:#C3C3C3;
+    font-size:120px;
+}
+
+.wiseup-favorite-icon {
+    color:#F2DD88;
+    font-size:20px;
+}
+
+.wiseup-settings-icon {
+    color:#C3C3C3;
+    font-size:20px;
+}
+
+.infobox > .wiseup-sensor-settings {
+  display: inline-block;
+  position: absolute;
+  left:60px;
+  top: 65px;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  font-weight: bold;
+  padding-right: 18px;
+  padding-top: 3px;
+  cursor:pointer;
+}
+
+.infobox > .wiseup-sensor-favorite {
+  display: inline-block;
+  position: absolute;
+  left: 85px;
+  top: 65px;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  font-weight: bold;
+  padding-right: 18px;
+  padding-top: 3px;
+  cursor:pointer;
+}
+
+.infobox > .infobox-data > .wiseup-infobox-data-number {
+  display: block;
+  font-size: 18px;
+  margin: 2px 0 4px;
+  position: relative;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.15);
+}
+.wiseup-bigger-350 {
+  font-size: 350%;
+}
+
+.dropdown-navbar .msg-sensor-icon {
+  margin-right: 6px;
+  max-width: 42px;
+}
+.wiseup_bold_on_hover {
+  cursor:pointer;
+}
+.wiseup_bold_on_hover:hover {
+  color:#FEB902;
+}
