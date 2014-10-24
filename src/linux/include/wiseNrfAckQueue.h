@@ -23,10 +23,12 @@ public:
 	~NrfAckQueue ();
 	bool start ();
 	void stop ();
-	void add (nrf24l01_msg_t msg);
-	void remove (uint16_t id);
-	void push (nrf24l01_msg_t msg);
-	nrf24l01_msg_t pop ();
+	void add (nrf24l01_msg_t &msg);
+	bool remove (uint16_t id);
+	bool find (uint16_t id);
+	void push (nrf24l01_msg_t &msg);
+	int getSize ();
+	nrf24l01_msg_t & pop ();
 
 	bool					m_isQueueEmpty;
 	bool					m_isWorking;

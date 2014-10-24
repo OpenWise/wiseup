@@ -24,6 +24,8 @@ WiseClientHandler::~WiseClientHandler () {
 wise_status_t
 WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
     WiseClient* device = findClient (wisePacket->sender);
+	
+	CommonMethods::printBuffer("(wise-nrfd) [registrationCheck] ", wisePacket->sender, 5);
     
     if (wisePacket->data_information.data_type == DEVICE_PROT_DATA_TYPE) {
         rfcomm_device_prot* prot = (rfcomm_device_prot*)wisePacket->data_frame.unframeneted.data;
@@ -111,12 +113,15 @@ WiseClientHandler::sendRegistration () {
     rfcomm_device_prot* deviceProt              = (rfcomm_device_prot *)wisePacketTX->data_frame.unframeneted.data;
     deviceProt->device_cmd                      = DEVICE_PROT_CONNECT_ADDR;
     memcpy (deviceProt->device_data, local_address, 5);
+	
+	memcpy(msg.packet, wisePacketTX, 32);
+	msg.isGeneratePacketID = true;
 
     /* Send to OUTGOING queue */
     WiseIPC *ipcPacketsOut = new WiseIPC ("/tmp/wiseup/nrf_outgoing_queue");
     if (ipcPacketsOut->setClient () == SUCCESS) {
-        ipcPacketsOut->setBuffer((unsigned char *)wisePacketTX);
-        if (ipcPacketsOut->sendMsg(32) == false) { }
+        ipcPacketsOut->setBuffer((unsigned char *)&msg);
+        if (ipcPacketsOut->sendMsg(sizeof (nrf24l01_msg_t)) == false) { }
         else { CommonMethods::printBuffer ("(wise-nrfd) [WiseClientHandler::sendRegistration] Registration for ", wisePacketTX->target, 5); }
     }
 

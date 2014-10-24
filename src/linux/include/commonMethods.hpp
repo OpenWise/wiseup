@@ -11,6 +11,21 @@
 #include <sys/time.h>
 #include "wise_ipc.h"
 
+#define YES 	1
+#define NO 	0
+
+typedef struct {
+    uint16_t    magic; 
+    uint8_t     packet[32];
+    uint64_t    timestamp;
+	bool		isGeneratePacketID;
+} nrf24l01_msg_t;
+
+typedef struct {
+        pthread_cond_t  cond;
+        pthread_mutex_t mutex;
+} sync_context_t;
+
 class CommonMethods {
 public:
     static uint64_t getTimestampMillis () {

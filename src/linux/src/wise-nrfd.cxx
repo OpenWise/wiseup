@@ -20,7 +20,6 @@
 #include <sys/stat.h>
 
 /* includes for wiseup */
-#include "common.h"
 #include "nrf24l01.h"
 #include "filelog.h"
 #include "fferror.hpp"
@@ -70,19 +69,28 @@ dataHandling () {
             clientHandler->sendRegistration ();
         }
 	} else {
-        /* 2.1. Execute the requested command*/
-        cmdHandler->commandHandler (wisePacketRX);
-        printf ("(wise-nrfd) [dataHandling] Updating DB with new sensor data \n");
-        WiseIPC *ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
-        
-	    if (ipcDB->setClient () == SUCCESS) {
-	    	ipcDB->setBuffer((unsigned char *)sensor->m_rxBuffer);
-			if (ipcDB->sendMsg(32) == false) { }
+		if (wisePacketRX->control_flags.is_ack) {
+			if (ackQueue->remove(wisePacketRX->packet_id)) {
+				// Good - we removed the request from the queue.
+				printf ("(wise-nrfd) [dataHandling] Removed ACK request \n");
+			} else {
+				// TODO - Gateway need to send response to the client
+			}
 		} else {
-			printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
+			/* 2.1. Execute the requested command*/
+			cmdHandler->commandHandler (wisePacketRX);
+			printf ("(wise-nrfd) [dataHandling] Updating DB with new sensor data \n");
+			WiseIPC *ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
+			
+			if (ipcDB->setClient () == SUCCESS) {
+				ipcDB->setBuffer((unsigned char *)sensor->m_rxBuffer);
+				if (ipcDB->sendMsg(32) == false) { }
+			} else {
+				printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
+			}
+			
+			delete ipcDB;
 		}
-        
-    	delete ipcDB;
     }
 }
 
@@ -95,6 +103,7 @@ dataHandling () {
  */
 void
 netLayerDataArrivedHandler () {
+	printf ("(wise-nrfd) [netLayerDataArrivedHandler] WISEDATA\n");
     dataHandling ();
 }
 
@@ -107,6 +116,7 @@ netLayerDataArrivedHandler () {
  */
 void
 netLayerBroadcastArrivedHandler () {
+	printf ("(wise-nrfd) [netLayerBroadcastArrivedHandler] BROADCAST\n");
     dataHandling ();
 }
 
@@ -165,7 +175,7 @@ phpCommandListener (void *) {
                 wisePacketTX->control_flags.is_fragmeneted    = 0;
                 wisePacketTX->control_flags.version           = 1;
                 wisePacketTX->control_flags.is_broadcast      = 0;
-                wisePacketTX->control_flags.is_ack            = 0;
+                wisePacketTX->control_flags.is_ack            = YES;
                 wisePacketTX->magic_number[0]                 = 0xAA;
                 wisePacketTX->magic_number[1]                 = 0xBB;
                 memcpy (wisePacketTX->sender, local_address, 5);
@@ -210,13 +220,13 @@ outgoingMessageListener (void *) {
 
         int client = -1;
         while (1) {
-            printf ("(wise-nrfd) [outgoingMessageListener] Listenning...\n");
+            // printf ("(wise-nrfd) [outgoingMessageListener] Listenning...\n");
             client = ipcNrfOut->listenIPC ();
 
             nrf24l01_msg_t msg;
             try {
-                ipcNrfOut->setBuffer (msg.packet);
-                ipcNrfOut->readMsg (client, 32);
+                ipcNrfOut->setBuffer ((unsigned char *)&msg);
+                ipcNrfOut->readMsg (client, sizeof (nrf24l01_msg_t));
                 pthread_mutex_lock   (&msgPullSyncContext.mutex);
                 messagePull.push_back (msg);
                 pthread_mutex_unlock (&msgPullSyncContext.mutex);
@@ -225,7 +235,7 @@ outgoingMessageListener (void *) {
 
             }
             
-            printf ("(wise-nrfd) [outgoingMessageListener] Got new package\n");
+            // printf ("(wise-nrfd) [outgoingMessageListener] Got new package\n");
             close (client);
         }
     } catch (FFError e) {
@@ -249,20 +259,29 @@ outgoingNrf24l01 () {
         rfcomm_data *wisePacket = (rfcomm_data *)msg.packet;
         msg.timestamp = CommonMethods::getTimestampMillis();
 
-        /* initialize random seed: */
-        srand (time(NULL));
-        wisePacket->packet_id = rand() % 65500 + 1;;
+		if (msg.isGeneratePacketID) {
+			/* initialize random seed: */
+			srand (time(NULL));
+			wisePacket->packet_id = rand() % 65500 + 1;
+			printf ("(wise-nrfd) [outgoingNrf24l01] ADDING RAND TO REQUEST\n");
+		}
 
         memcpy (net->ptrTX, msg.packet, MAX_BUFFER);
         net->sendPacket (wisePacket->target);
 
+		// Add to the ACK queue if requested
         if (wisePacket->control_flags.is_ack) {
-            msg.timestamp = CommonMethods::getTimestampMillis();
-            ackQueue->add (msg);
+			// Check if the packet id is already there
+			if (!ackQueue->find(wisePacket->packet_id)) {
+				msg.timestamp = CommonMethods::getTimestampMillis();
+				printf ("(wise-nrfd) [outgoingNrf24l01] ADDING NEW ACK REQUEST\n");
+				ackQueue->add (msg);
+			}
         }
 
         CommonMethods::printBuffer("(wise-nrfd) [outgoingNrf24l01] Sending to ", wisePacket->target, 5);
-        printf ("(wise-nrfd) [outgoingNrf24l01] (Messages left %d)", messagePull.size());
+		printf ("(wise-nrfd) [outgoingNrf24l01] Packet ID -> %d\n", wisePacket->packet_id);
+        // printf ("(wise-nrfd) [outgoingNrf24l01] (Messages left %d)\n", messagePull.size());
     }
 }
 
@@ -360,7 +379,7 @@ main (int argc, char **argv)
     timerRUD->setTimer (60);
 
     if (!ackQueue->start()) {
-        printf("************** ACK_QUEUE did not start *************\n");
+		printf("************** ACK_QUEUE did not start *************\n");
     }
 
     /* The Big Loop */
@@ -376,7 +395,7 @@ main (int argc, char **argv)
         }
     }
 
-    ackQueue->stop();
+	ackQueue->stop();
 
     delete ackQueue;
 	delete sensor;

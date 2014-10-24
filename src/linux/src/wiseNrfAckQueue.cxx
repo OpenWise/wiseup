@@ -18,22 +18,22 @@ worker (void * args) {
 			nrf24l01_msg_t msg = obj->pop();
 
 			ipcPacketsOut = new WiseIPC ("/tmp/wiseup/nrf_outgoing_queue");
-			if ( (CommonMethods::getTimestampMillis() - msg.timestamp) > 5000000) {
-
+			if ( (CommonMethods::getTimestampMillis() - msg.timestamp) > 3000000) {
+				cout << "(wiseNrfAckQueue) [worker] Queue size = " << obj->getSize() << endl;
+				
 				if (ipcPacketsOut->setClient () == SUCCESS) {
-			    	ipcPacketsOut->setBuffer((unsigned char *)msg.packet);
-			    	std::cout << "IPC " << CommonMethods::getTimestampMillis() - msg.timestamp << std::endl;
+			    	ipcPacketsOut->setBuffer((unsigned char *)&msg);
+					msg.isGeneratePacketID = false;
 			    	msg.timestamp = CommonMethods::getTimestampMillis();
-					if (ipcPacketsOut->sendMsg(32) == false) { }
+					if (ipcPacketsOut->sendMsg(sizeof (nrf24l01_msg_t)) == false) { }
 				}
 			}
-
 			delete ipcPacketsOut;
+			
 			obj->add(msg);
-			usleep (10);
-		} else {
-			usleep (100);
-		}		
+		}
+		
+		usleep (10);
 	}
 }
 
@@ -68,15 +68,15 @@ NrfAckQueue::stop () {
 }
 
 void
-NrfAckQueue::add (nrf24l01_msg_t msg) {
+NrfAckQueue::add (nrf24l01_msg_t &msg) {
 	pthread_mutex_lock (&m_lock.mutex);
 	m_messagePull.push_back (msg);
 	pthread_mutex_unlock (&m_lock.mutex);
-
+	
 	m_isQueueEmpty = false;
 }
 
-void
+bool
 NrfAckQueue::remove (uint16_t id) {
 	pthread_mutex_lock (&m_lock.mutex);
 	rfcomm_data * packet = NULL;
@@ -90,25 +90,50 @@ NrfAckQueue::remove (uint16_t id) {
 				m_isQueueEmpty = true;
 			}
 
-            return;
+            return true;
         }
     }
 	pthread_mutex_unlock (&m_lock.mutex);
+	
+	return false;
+}
+
+bool
+NrfAckQueue::find (uint16_t id) {
+	pthread_mutex_lock (&m_lock.mutex);
+	rfcomm_data * packet = NULL;
+	for (std::vector<nrf24l01_msg_t>::iterator item = m_messagePull.begin(); item != m_messagePull.end(); ++item) {
+		packet = (rfcomm_data *) (item->packet);
+        if (packet->packet_id == id) {
+            pthread_mutex_unlock (&m_lock.mutex);
+            return true;
+        }
+    }
+	pthread_mutex_unlock (&m_lock.mutex);
+	
+	return false;
 }
 
 void
-NrfAckQueue::push (nrf24l01_msg_t msg) {
+NrfAckQueue::push (nrf24l01_msg_t &msg) {
 	add (msg);
 }
 
-nrf24l01_msg_t
+nrf24l01_msg_t&
 NrfAckQueue::pop () {
 	pthread_mutex_lock (&m_lock.mutex);
-	nrf24l01_msg_t msg = m_messagePull.back();
+	nrf24l01_msg_t msg = m_messagePull.back();				
 	m_messagePull.pop_back();
 	pthread_mutex_unlock (&m_lock.mutex);
 
 	if (m_messagePull.size() == 0) {
 		m_isQueueEmpty = true;
 	}
+	
+	return msg;
+}
+
+int
+NrfAckQueue::getSize () {
+	return m_messagePull.size();
 }
