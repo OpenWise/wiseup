@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-#define DATA_PACKAGE_SIZE           18
+#define DATA_PACKAGE_SIZE           16
 #define RFCOMM_VERSION              0x1
 
 /* Data type */
@@ -27,6 +27,7 @@
 /* Sizes */
 #define SENSOR_INFO_DATA_SIZE	    0x3
 #define DEVICE_PROT_CONN_DATA_SIZE  0x1
+#define SENSOR_CMD_DATA_TYPE_SIZE	0x6
 
 /* Sensors type */
 #define TEMPERATURE_SENSOR_TYPE     0x1
@@ -60,9 +61,10 @@ struct rfcomm_device_prot {
 struct rfcomm_data {
 	struct control { 
 		uint8_t is_fragmeneted	: 1;
-		uint8_t version		: 3;
+		uint8_t version			: 3;
 		uint8_t is_broadcast	: 1;
-		uint8_t reserved	: 3;
+		uint8_t is_ack			: 1;
+		uint8_t reserved		: 2;
 	};
 	
 	struct data_info {
@@ -81,11 +83,12 @@ struct rfcomm_data {
 		} fragmented;
 	};
 	
-	uint16_t	magic_number;			// 2  byte
-	control 	control_flags;			// 1  byte
-        uint8_t         sender[5];                      // 5  byte
-        uint8_t		target[5];			// 5  byte
-	data_info	data_information;		// 1  byte
-	data_package 	data_frame;			// 18 byte
+	uint16_t		magic_number;		// 2  byte
+	control 		control_flags;		// 1  byte
+	uint8_t			sender[5];          // 5  byte
+	uint8_t			target[5];			// 5  byte
+	data_info		data_information;	// 1  byte
+	data_package 	data_frame;			// 16 byte
+	uint16_t		packet_id;			// 2  byte
 };
 

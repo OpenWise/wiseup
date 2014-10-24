@@ -48,7 +48,7 @@ network_layer_broadcast_arrived_handler () {
 
 void
 network_layer_data_arrived_handler () {
-  nrf24l01_receiver_handler (nrfRXPacket, &device_context);
+  nrf24l01_receiver_handler (&device_context, net);
 }
 
 void
