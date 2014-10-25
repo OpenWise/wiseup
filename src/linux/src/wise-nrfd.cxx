@@ -59,6 +59,7 @@ sync_context_t  msgPullSyncContext;
 
 void
 dataHandling () {
+	db_msg_t 	msg;
     rfcomm_data *wisePacketRX = (rfcomm_data *)sensor->m_rxBuffer;
 
     /* 1. Chick the registarion ID.*/
@@ -83,8 +84,10 @@ dataHandling () {
 			WiseIPC *ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
 			
 			if (ipcDB->setClient () == SUCCESS) {
-				ipcDB->setBuffer((unsigned char *)sensor->m_rxBuffer);
-				if (ipcDB->sendMsg(32) == false) { }
+				memcpy(&msg.packet, sensor->m_rxBuffer, 32);
+				ipcDB->setBuffer((unsigned char *)&msg);
+				msg.spId = SP_UPDATE_SENSOR_INFO;
+				if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
 			} else {
 				printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
 			}
@@ -328,6 +331,20 @@ deamonize () {
     printf("\nChange the current working directory... [SUCCESS]\n");
 }
 
+void
+initDatabase () {
+	db_msg_t 	msg;
+	WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
+	if (ipcDB->setClient () == SUCCESS) {
+		ipcDB->setBuffer((unsigned char *)&msg);
+		msg.spId = SP_SET_ALL_SENSOR_NOT_CONNECTED;
+		if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
+	} else {
+		printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
+	}
+	delete ipcDB;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -381,6 +398,8 @@ main (int argc, char **argv)
     if (!ackQueue->start()) {
 		printf("************** ACK_QUEUE did not start *************\n");
     }
+	
+	initDatabase ();
 
     /* The Big Loop */
     while (!running) {

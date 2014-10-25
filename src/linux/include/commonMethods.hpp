@@ -12,7 +12,11 @@
 #include "wise_ipc.h"
 
 #define YES 	1
-#define NO 	0
+#define NO 		0
+
+#define SP_UPDATE_SENSOR_INFO 				1
+#define SP_SET_SENSOR_AVAILABILITY			2
+#define SP_SET_ALL_SENSOR_NOT_CONNECTED		3
 
 typedef struct {
     uint16_t    magic; 
@@ -20,6 +24,13 @@ typedef struct {
     uint64_t    timestamp;
 	bool		isGeneratePacketID;
 } nrf24l01_msg_t;
+
+typedef struct {
+	uint8_t		spId;
+	uint8_t		args[16];
+    rfcomm_data packet;
+    uint64_t    timestamp;
+} db_msg_t;
 
 typedef struct {
         pthread_cond_t  cond;

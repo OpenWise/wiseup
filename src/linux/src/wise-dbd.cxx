@@ -17,6 +17,7 @@
 #include "wise_mysql.h"
 #include "wise_ipc.h"
 #include "wise_rfcomm.hpp"
+#include "commonMethods.hpp"
 
 using namespace std;
 
@@ -85,7 +86,7 @@ deamonize () {
 }
 
 int main (void) {
-    unsigned char buff[64];
+    db_msg_t 			msg;
     WiseIPC 			*ipcDB  		= NULL;
     MySQL   			*dbconn 		= NULL;
 	rfcomm_data 		*wisePacket 	= NULL;
@@ -102,7 +103,7 @@ int main (void) {
     
     ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
     ipcDB->setServer ();
-    ipcDB->setBuffer (buff);
+    ipcDB->setBuffer ((unsigned char *)&msg);
 
     int client      = -1;
 
@@ -125,21 +126,22 @@ int main (void) {
 	// close(STDOUT_FILENO);
 	// close(STDERR_FILENO);
 
-	wisePacket = (rfcomm_data *)buff;
+	wisePacket = (rfcomm_data *)&msg.packet;
     while (!running) {
         client = ipcDB->listenIPC ();
-		memset (ipcDB->buff, 0, 64);
+		memset (ipcDB->buff, 0, sizeof(db_msg_t));
         
-        read (client, ipcDB->buff, 32);
-		uint8_t* data_ptr = wisePacket->data_frame.unframeneted.data;
-		sensor_info = (rfcomm_sensor_info *)data_ptr;
+        read (client, ipcDB->buff, sizeof(db_msg_t));
+		switch (msg.spId) {
+			case SP_UPDATE_SENSOR_INFO: {
+				uint8_t* data_ptr = wisePacket->data_frame.unframeneted.data;
+				sensor_info = (rfcomm_sensor_info *)data_ptr;
 
-        /* Parse the message */
-        long long sensor_address = 0;
-        long long sensor_gateway_address = 0;
-		switch (wisePacket->data_information.data_type) {
-            case SENSOR_INFO_DATA_TYPE: {
+				/* Parse the message */
+				long long sensor_address = 0;
+				long long hub_address = 0;
 				int data = 0;
+				
 				while (wisePacket->data_information.data_size) {
 					data_ptr += SENSOR_INFO_DATA_SIZE;
 					data = *data_ptr;
@@ -150,27 +152,48 @@ int main (void) {
 					sensor_address = 0;
 					memcpy (&sensor_address, wisePacket->sender, 5);
 					sensor_address = (sensor_address << 8) | sensor_info->sensor_address;
-                    memcpy (&sensor_gateway_address, wisePacket->sender, 5);
+					memcpy (&hub_address, wisePacket->sender, 5);
 
-            		memset (query, 0x0, 512);
-            		sprintf (query, "call sp_update_sensor_info ('%lld', '%lld', '%d', '%d', '%d', '%d')", 
-                				sensor_address, sensor_gateway_address, sensor_info->sensor_address, sensor_info->sensor_type, 1, data);
+					memset (query, 0x0, 512);
+					sprintf (query, "call sp_update_sensor_info ('%lld', '%lld', '%d', '%d', '%d', '%d')", 
+								sensor_address, hub_address, sensor_info->sensor_address, sensor_info->sensor_type, 1, data);
 
 					/* Execute MySQL query */
-    				dbconn->executeQuery(query);
-    				dbconn->freeRes();
+					dbconn->executeQuery(query);
+					dbconn->freeRes();
 
 					sensor_info = (rfcomm_sensor_info *)data_ptr;
-                    
-                    printf ("%s\n", query);
+					
+					printf ("%s\n", query);
 					/* sprintf ((char *) wise_stdout_buffer, "(wise-dbd) - %s", query);
 					stdout_msg (); */
 				}
 			}
-            break;
-            default:
-            break;
-        }
+			break;
+			case SP_SET_SENSOR_AVAILABILITY: {
+				/* Parse the message */
+				long long hub_address = 0;
+				memcpy (&hub_address, wisePacket->sender, 5);
+				
+				memset (query, 0x0, 512);
+				sprintf (query, "call sp_set_sensor_availability ('%lld', '%d')", hub_address, msg.args[0]);
+
+				/* Execute MySQL query */
+				dbconn->executeQuery(query);
+				dbconn->freeRes();
+				printf ("%s\n", query);
+			}
+			break;
+			case SP_SET_ALL_SENSOR_NOT_CONNECTED:
+				memset (query, 0x0, 512);
+				sprintf (query, "call sp_set_all_sensor_not_connected ()");
+				
+				/* Execute MySQL query */
+				dbconn->executeQuery(query);
+				dbconn->freeRes();
+				printf ("%s\n", query);
+			break;
+		}
 
 		close (client);
     }

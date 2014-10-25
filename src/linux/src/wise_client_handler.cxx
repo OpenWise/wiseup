@@ -38,6 +38,20 @@ WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
                 if (device->status == DISCOVERY) {
                     return DISCOVERY;
                 } else if (device->status == CONNECTED) {
+					// Set HUB as available
+					db_msg_t 	msg;
+					WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
+					if (ipcDB->setClient () == SUCCESS) {
+						memcpy(&msg.packet, wisePacket, 32);
+						ipcDB->setBuffer((unsigned char *)&msg);
+						msg.spId = SP_SET_SENSOR_AVAILABILITY;
+						msg.args[0] = YES;
+						if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
+					} else {
+						printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
+					}
+					delete ipcDB;
+				
                     return CONNECTED;
                 }
             } else {
@@ -46,17 +60,33 @@ WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
                  * send our address back to the device. When the device will recieve 
                  * our address it will stop broadcasting and know this gateway.
                  */
-                printf ("(wise-nrfd) [WiseClientHandler::registrationCheck] Adding new device \n");
+                
                 WiseClient client   = WiseClient(wisePacket->sender);
                 client.timestamp    = (uint64_t)time(NULL);
                 client.status       = DISCOVERY;
                 m_clients.push_back(client);
+				
+				printf ("(wise-nrfd) [WiseClientHandler::registrationCheck] Adding new device \n");
+			
                 return DISCOVERY;
             }
         }
     } else {
         if (device != NULL) {
             device->timestamp = (uint64_t)time(NULL);
+			// Set HUB as available
+			db_msg_t 	msg;
+			WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
+			if (ipcDB->setClient () == SUCCESS) {
+				memcpy(&msg.packet, wisePacket, 32);
+				ipcDB->setBuffer((unsigned char *)&msg);
+				msg.spId = SP_SET_SENSOR_AVAILABILITY;
+				msg.args[0] = YES;
+				if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
+			} else {
+				printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
+			}
+			delete ipcDB;
             return CONNECTED;
         }
     }
@@ -71,6 +101,21 @@ WiseClientHandler::removeUnusedDeveices () {
             printf ("(wise-nrfd) Delete non-resposive client ");
             item->printAddress();
             m_clients.erase (item);
+			
+			// Set HUB as not available
+			db_msg_t 	msg;
+			WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
+			if (ipcDB->setClient () == SUCCESS) {
+				memcpy(msg.packet.sender, item->address, 5);
+				ipcDB->setBuffer((unsigned char *)&msg);
+				msg.spId = SP_SET_SENSOR_AVAILABILITY;
+				msg.args[0] = NO;
+				if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
+			} else {
+				printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
+			}
+			delete ipcDB;
+			
             return;
         }
     }
