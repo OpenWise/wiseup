@@ -448,6 +448,7 @@ ui_switch =			"<div class='infobox infobox-blue'>" +
 							"<span class='wiseup-infobox-data-number viseup-blue-value'>!ph_sensor_web_value!</span>" +
 							"<div class='infobox-content'>!ph_sensor_name!</div>" +
 						"</div>" +
+						"!ph_sensor_footer!" +
 					"</div>";
 ui_magnet =			"<div class='infobox infobox-blue'>" +
 						"!ph_sensor_icon!" +

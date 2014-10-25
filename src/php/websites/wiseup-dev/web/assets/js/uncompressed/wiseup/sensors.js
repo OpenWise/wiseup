@@ -25,20 +25,20 @@ ui_builder_sensor.prototype.ui_router_sensor = function () {
 ui_builder_sensor.prototype.ui_temperature_object = function () {
 	var html = ui_temperature.replace('!ph_sensor_web_value!', this.sensor.value);
 	html = html.replace('!ph_sensor_name!',this.sensor.sensor_name);
-	// html = html.replace('!ph_sensor_footer!', this.ui_sensor_footer_object (this.sensor));
+	html = html.replace('!ph_sensor_footer!', this.ui_sensor_footer_object (this.sensor));
 	
 	return html;
 };
 ui_builder_sensor.prototype.ui_luminance_object = function () {
 	var html = ui_luminance.replace('!ph_sensor_web_value!', this.sensor.value);
 	html = html.replace('!ph_sensor_name!',this.sensor.sensor_name);
-	// html = html.replace('!ph_sensor_footer!', this.ui_sensor_footer_object (this.sensor));
+	html = html.replace('!ph_sensor_footer!', this.ui_sensor_footer_object (this.sensor));
 	
 	return html;
 };
 ui_builder_sensor.prototype.ui_movement_object = function () {
 	var html = ui_movement.replace('!ph_sensor_name!',this.sensor.sensor_name);
-	// html = html.replace('!ph_sensor_footer!', this.ui_sensor_footer_object (this.sensor));
+	html = html.replace('!ph_sensor_footer!', this.ui_sensor_footer_object (this.sensor));
 	
     if (this.sensor.value == 1) {
 		html = html.replace('!ph_sensor_web_value!', "Move");
@@ -51,8 +51,8 @@ ui_builder_sensor.prototype.ui_movement_object = function () {
 	return html;
 };
 ui_builder_sensor.prototype.ui_switch_object = function () {
-	var html = ui_movement.replace('!ph_sensor_name!',this.sensor.sensor_name);
-	// html = html.replace('!ph_sensor_footer!', this.ui_sensor_footer_object (this.sensor));
+	var html = ui_switch.replace('!ph_sensor_name!',this.sensor.sensor_name);
+	html = html.replace('!ph_sensor_footer!', this.ui_sensor_footer_object (this.sensor));
 	var text = "";
 	
 	if (this.sensor.action == 0 && this.sensor.value == 0) {
@@ -98,10 +98,11 @@ ui_builder_sensor.prototype.ui_sensor_footer_object = function () {
 	}*/
 	
 	return	"<div class='wiseup-sensor-settings'>" +
-				// "<i class='icon-star wiseup-favorite-icon' style='color:" + get_favorite_icon_color (this.sensor) + ";cursor:pointer;' " + action + "></i>" +
+				"<i class='icon-star wiseup-favorite-icon' style='color:" + get_favorite_icon_color (this.sensor) + ";cursor:pointer;' " + action + "></i>" +
 			"</div>" +
 			"<div class='wiseup-sensor-favorite'>" +
 				// "<i class='icon-cog wiseup-settings-icon' style='cursor:pointer;' onclick='this.style.color=\"#87B87F\"; sensor_settings_click_handle(this, " + this.sensor.SensorId + ");'></i>" +
+				"<i class='icon-cog wiseup-settings-icon' style='cursor:pointer;' onclick='this.style.color=\"#87B87F\";'></i>" +
 			"</div>";
 };
 
@@ -178,8 +179,7 @@ function get_all_favorite_sensors (fn_ptr) {
 	var json = new Object();
 	var json_string = "";
 	
-	json.method = "get_favorite_sensors";
-    json.gateway_address = "1"; // we don't use the gateway value in the query
+	json.method = "get_sensors_info";
 	json_string = JSON.stringify(json);
 	
 	$.post(endpoint_sensor, json_string, fn_ptr);

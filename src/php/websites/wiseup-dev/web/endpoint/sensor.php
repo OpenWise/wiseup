@@ -16,13 +16,8 @@ function parse_request_data($requestMethod, $json_data) {
 			return "DEBUG";
 		break;
 	/* *** GET SECTION *** */
-		case "get_favorite_sensors":
-			/*
-             * if (!isset($_SESSION['upid']))
-			 *	return 0;
-             */
-				
-			$query = sprintf("call sp_get_sensors_info( %s )  ", $json_data->gateway_address);
+		case "get_sensors_info":				
+			$query = sprintf("call sp_get_sensors_info()  ");
 			$db_data = mysql_query ($query);
 			$row_count = mysql_num_rows($db_data);
 			if ($row_count > 0) {
@@ -35,11 +30,6 @@ function parse_request_data($requestMethod, $json_data) {
 			}
 		break;
 		case "set_sensor_action":
-			/*
-             * if (!isset($_SESSION['upid']))
-			 *	return 0;
-             */
-				
 			$query = sprintf("call sp_set_sensors_action( %s, %s )  ", $json_data->sensor_id, $json_data->action);
 			$db_data = mysql_query ($query);
 			$row_count = mysql_num_rows($db_data);
