@@ -23,6 +23,7 @@ typedef struct {
     uint8_t     packet[32];
     uint64_t    timestamp;
 	bool		isGeneratePacketID;
+	uint8_t		transCounter;		// how many times this msg's packet was sent
 } nrf24l01_msg_t;
 
 typedef struct {

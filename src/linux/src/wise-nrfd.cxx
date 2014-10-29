@@ -175,9 +175,9 @@ phpCommandListener (void *) {
                 rfcomm_data *wisePacketTX = (rfcomm_data *)net->ptrTX;
                 wisePacketTX->data_information.data_type      = SENSOR_CMD_DATA_TYPE;
                 wisePacketTX->data_information.data_size      = SENSOR_CMD_DATA_TYPE_SIZE;
-                wisePacketTX->control_flags.is_fragmeneted    = 0;
+                wisePacketTX->control_flags.is_fragmeneted    = NO;
                 wisePacketTX->control_flags.version           = 1;
-                wisePacketTX->control_flags.is_broadcast      = 0;
+                wisePacketTX->control_flags.is_broadcast      = NO;
                 wisePacketTX->control_flags.is_ack            = YES;
                 wisePacketTX->magic_number[0]                 = 0xAA;
                 wisePacketTX->magic_number[1]                 = 0xBB;
@@ -189,6 +189,7 @@ phpCommandListener (void *) {
                 sensorCmd->command_data[0]       = sensorAction;
 
                 memcpy (msg.packet, net->ptrTX, 32);
+				msg.transCounter = 0;
 
                 pthread_mutex_lock   (&msgPullSyncContext.mutex);
                 messagePull.push_back(msg);
@@ -257,7 +258,7 @@ outgoingNrf24l01 () {
         pthread_mutex_lock (&msgPullSyncContext.mutex);
         nrf24l01_msg_t msg = messagePull.back();
         messagePull.pop_back();
-        pthread_mutex_unlock (&msgPullSyncContext.mutex);
+        pthread_mutex_unlock (&msgPullSyncContext.mutex); 
 
         rfcomm_data *wisePacket = (rfcomm_data *)msg.packet;
         msg.timestamp = CommonMethods::getTimestampMillis();
@@ -279,6 +280,11 @@ outgoingNrf24l01 () {
 				msg.timestamp = CommonMethods::getTimestampMillis();
 				printf ("(wise-nrfd) [outgoingNrf24l01] ADDING NEW ACK REQUEST\n");
 				ackQueue->add (msg);
+			} else {
+				msg.transCounter++;
+				if (msg.transCounter > 10) {
+					ackQueue->remove(wisePacket->packet_id);
+				}
 			}
         }
 

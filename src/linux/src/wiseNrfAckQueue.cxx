@@ -19,7 +19,7 @@ worker (void * args) {
 
 			ipcPacketsOut = new WiseIPC ("/tmp/wiseup/nrf_outgoing_queue");
 			if ( (CommonMethods::getTimestampMillis() - msg.timestamp) > 3000000) {
-				cout << "(wiseNrfAckQueue) [worker] Queue size = " << obj->getSize() << endl;
+				cout << "(wiseNrfAckQueue) [ACK worker] Requesting resent, queue size is " << obj->getSize() + 1 << endl;
 				
 				if (ipcPacketsOut->setClient () == SUCCESS) {
 			    	ipcPacketsOut->setBuffer((unsigned char *)&msg);
@@ -68,8 +68,15 @@ NrfAckQueue::stop () {
 }
 
 void
-NrfAckQueue::add (nrf24l01_msg_t &msg) {
+NrfAckQueue::add (nrf24l01_msg_t &msg) { 
 	pthread_mutex_lock (&m_lock.mutex);
+	rfcomm_data * packet = NULL;
+	for (std::vector<nrf24l01_msg_t>::iterator item = m_messagePull.begin(); item != m_messagePull.end(); ++item) {
+		packet = (rfcomm_data *) (item->packet);
+		if (!memcmp (msg.packet, packet, 30)) 
+			return;
+	}
+	
 	m_messagePull.push_back (msg);
 	pthread_mutex_unlock (&m_lock.mutex);
 	
