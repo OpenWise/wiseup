@@ -18,6 +18,7 @@
 #include "wise_ipc.h"
 #include "wise_rfcomm.hpp"
 #include "commonMethods.hpp"
+#include "wiseCacheDB.h"
 
 using namespace std;
 
@@ -27,17 +28,6 @@ uint8_t wise_stdout_buffer[128];
 
 /* Our process ID and Session ID */
 pid_t pid, sid;
-
-void stdout_msg () {
-	/* Initiate UNIX socket as stdout */
-	WiseIPC *ipcSTDOUT = new WiseIPC ("/tmp/wiseup/stdout_pipe");
-	if (ipcSTDOUT->setClient () == SUCCESS) {
-		ipcSTDOUT->setBuffer (wise_stdout_buffer);
-		if (ipcSTDOUT->sendMsg(128) == false) { }
-	}
-
-	delete ipcSTDOUT;
-}
 
 void
 deamonize () {
@@ -91,6 +81,7 @@ int main (void) {
     MySQL   			*dbconn 		= NULL;
 	rfcomm_data 		*wisePacket 	= NULL;
 	rfcomm_sensor_info 	*sensor_info	= NULL;
+	CacheDB				*cacheBD		= NULL;
 
     struct stat st = {0};
     if (stat("/tmp/wiseup", &st) == -1) {
@@ -117,6 +108,9 @@ int main (void) {
     
     dbconn = new MySQL();
     dbconn->setupConnection(&cred);
+	
+	cacheBD = new CacheDB();
+	cacheBD->start();
 
 	printf("Starting the listener... [SUCCESS]\n");
 
@@ -141,6 +135,8 @@ int main (void) {
 				long long sensor_address = 0;
 				long long hub_address = 0;
 				int data = 0;
+				
+				cacheBD->apiUpdateSensorsValue (wisePacket);
 				
 				while (wisePacket->data_information.data_size) {
 					data_ptr += SENSOR_INFO_DATA_SIZE;
@@ -198,8 +194,11 @@ int main (void) {
 		close (client);
     }
     
+	cacheBD->stop();
+	
     delete dbconn;
     delete ipcDB;
+	delete cacheBD;
 
 	exit(EXIT_SUCCESS);
 }

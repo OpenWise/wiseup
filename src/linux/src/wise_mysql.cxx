@@ -77,3 +77,8 @@ void
 MySQL::freeRes () {
     mysql_free_result (this->mySQLResult);
 }
+
+unsigned int 
+MySQL::getFieldsCount () {
+	return mysql_num_fields(this->mySQLResult);
+}
