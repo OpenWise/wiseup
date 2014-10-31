@@ -9,11 +9,12 @@
 
 #include <iostream>
 #include "wiseCacheDB.h"
+#include "wiseEventMng.h"
 
 using namespace std;
 
 void * 
-worker (void * args) {
+cacheDBWorker (void * args) {
 	cache_db_msg_t  msg;
 	WiseIPC* ipcDB  = NULL;
 	CacheDB* obj 	= (CacheDB*)args;
@@ -32,29 +33,9 @@ worker (void * args) {
 		memset (ipcDB->buff, 0, sizeof(cache_db_msg_t));
         
         read (client, ipcDB->buff, sizeof(cache_db_msg_t));
-		
 		switch (msg.requestId) {
-			case CACHE_DB_UPDATE_SENSORS_VALUE: {
-				obj->updateSensorsValueHandler (msg);
-			}
-			break;
-			case CACHE_DB_UPDATE_SENSOR_VALUE: {
-			}
-			break;
-			case CACHE_DB_UPDATE_SENSOR_AVAILABLE: {
-				obj->updateSensorAvailable (msg);
-			}
-			break;
-			case CACHE_DB_ADD_EVENT: {
-			}
-			break;
-			case CACHE_DB_ADD_TIMER: {
-			}
-			break;
-			case CACHE_DB_REMOVE_EVENT: {
-			}
-			break;
-			case CACHE_DB_REMOVE_TIMER: {
+			case CACHE_DB_UPDATE_SENSORS_VALUE_FROM_RFCOMM_DATA: {
+				obj->updateSensorsValueFromRfcommDataHandler (msg);
 			}
 			break;
 		}
@@ -71,8 +52,8 @@ CacheDB::printSensorsInfo () {
 													item->sensorInfo.hubAddress,
 													item->sensorInfo.sensorPort, 
 													item->sensorInfo.sensorType,
-													item->sensorInfo.sensorHWValue, 
-													item->sensorInfo.sensorUIValue, 
+													item->sensorInfo.value.sensorHWValue, 
+													item->sensorInfo.value.sensorUIValue, 
 													item->sensorInfo.flags.isAvalibale);
 	}
 }
@@ -94,14 +75,16 @@ CacheDB::initDB () {
 	while ((row = mysql_fetch_row(m_dbconn->mySQLResult))) {
 		SensorInfo sensor;
 		
-		sensor.sensorInfo.sensorAddress 	 = atoll(row[0]);
-		sensor.sensorInfo.hubAddress 		 = atoll(row[1]);
-		sensor.sensorInfo.sensorPort 		 = atoll(row[2]);
-		sensor.sensorInfo.sensorType 		 = atoll(row[3]);
-		sensor.sensorInfo.sensorHWValue 	 = atoll(row[4]);
-		sensor.sensorInfo.sensorUIValue 	 = (row[5] != NULL) ? atoll(row[5]) : sensor.sensorInfo.sensorHWValue;
-		sensor.sensorInfo.flags.isAvalibale  = atoll(row[6]);
-		sensor.sensorInfo.lastUpdate 		 = 0;
+		sensor.sensorInfo.sensorAddress 	 	= atoll(row[0]);
+		sensor.sensorInfo.hubAddress 		 	= atoll(row[1]);
+		sensor.sensorInfo.sensorPort 		 	= atoll(row[2]);
+		sensor.sensorInfo.sensorType 		 	= atoll(row[3]);
+		sensor.sensorInfo.value.sensorHWValue 	= atoll(row[4]);
+		sensor.sensorInfo.value.sensorUIValue 	= (row[5] != NULL) ? atoll(row[5]) : sensor.sensorInfo.value.sensorHWValue;
+		sensor.sensorInfo.flags.isAvalibale  	= atoll(row[6]);
+		sensor.sensorInfo.flags.isValueCng 		= NO;
+		sensor.sensorInfo.flags.isEvent			= NO;
+		sensor.sensorInfo.lastUpdate 		 	= 0;
 		
 		add (sensor);
 	}
@@ -131,7 +114,7 @@ CacheDB::~CacheDB () {
 bool
 CacheDB::start () {
 	m_isWorking = true;
-	int error 	= pthread_create(&m_worker, NULL, worker, this);
+	int error 	= pthread_create(&m_worker, NULL, cacheDBWorker, this);
     if (error) {
          return false;
     }
@@ -190,14 +173,14 @@ CacheDB::getSize () {
 }
 
 void
-CacheDB::apiUpdateSensorsValue (rfcomm_data* data) {
+CacheDB::apiUpdateSensorsValueFromRfcommData (rfcomm_data* data) {
 	WiseIPC 		*ipcCacheDB = new WiseIPC ("/tmp/wiseup/cache_db_pipe");
 	cache_db_msg_t	msg;
 	
 	if (ipcCacheDB->setClient () == SUCCESS) {
 		memcpy(&msg.packet, data, 32);
 		ipcCacheDB->setBuffer((unsigned char *)&msg);
-		msg.requestId 		= CACHE_DB_UPDATE_SENSORS_VALUE;
+		msg.requestId 		= CACHE_DB_UPDATE_SENSORS_VALUE_FROM_RFCOMM_DATA;
 		msg.requestorType 	= HW_REQUESTOR;
 		if (ipcCacheDB->sendMsg(sizeof(cache_db_msg_t)) == false) { }
 	} else {
@@ -208,11 +191,12 @@ CacheDB::apiUpdateSensorsValue (rfcomm_data* data) {
 }
 
 void
-CacheDB::updateSensorsValueHandler (cache_db_msg_t& data) {
+CacheDB::updateSensorsValueFromRfcommDataHandler (cache_db_msg_t& data) {
 	printf ("(CacheDB) [updateSensorsValueHandler] ... \n");
-	long long sensor_address = 0;
-	long long hub_address = 0;
-	int sensorData = 0;
+	long long 	sensor_address	= 0;
+	long long 	hub_address 	= 0;
+	int 		sensorData	 	= 0;
+	bool		dbChanged		= false;
 	
 	rfcomm_data*		 wisePacket 	= (rfcomm_data *)&data.packet;
 	uint8_t* 			 data_ptr 		= wisePacket->data_frame.unframeneted.data;
@@ -232,23 +216,33 @@ CacheDB::updateSensorsValueHandler (cache_db_msg_t& data) {
 		memcpy (&hub_address, wisePacket->sender, 5);
 		
 		if (find (sensor_address, sensor)) {
-			sensor.sensorInfo.sensorHWValue = sensorData;
+			sensor.sensorInfo.backup.sensorHWValue = sensor.sensorInfo.value.sensorHWValue;
+			sensor.sensorInfo.backup.sensorUIValue = sensor.sensorInfo.value.sensorUIValue;
+		
+			sensor.sensorInfo.value.sensorHWValue = sensorData;
 			if (sensor.sensorInfo.sensorType != 4) {
-				sensor.sensorInfo.sensorUIValue = sensorData;
+				sensor.sensorInfo.value.sensorUIValue = sensorData;
 			}
 			sensor.sensorInfo.lastUpdate = CommonMethods::getTimestampMillis();
+			
+			if (sensor.sensorInfo.backup.sensorHWValue != sensor.sensorInfo.value.sensorHWValue) {
+				sensor.sensorInfo.flags.isValueCng = YES;
+				dbChanged = true;
+			}
 		} else {
 			// TODO - Add new sensor to the cache DB
 			SensorInfo newSensor;
 		
-			newSensor.sensorInfo.sensorAddress 	 	= sensor_address;
-			newSensor.sensorInfo.hubAddress 		= hub_address;
-			newSensor.sensorInfo.sensorPort 		= sensor_info->sensor_address;
-			newSensor.sensorInfo.sensorType 		= sensor_info->sensor_type;
-			newSensor.sensorInfo.sensorHWValue 	 	= sensorData;
-			newSensor.sensorInfo.sensorUIValue 	 	= sensorData;
-			newSensor.sensorInfo.flags.isAvalibale  = true;
-			newSensor.sensorInfo.lastUpdate 		= CommonMethods::getTimestampMillis();;
+			newSensor.sensorInfo.sensorAddress 	 		= sensor_address;
+			newSensor.sensorInfo.hubAddress 			= hub_address;
+			newSensor.sensorInfo.sensorPort 			= sensor_info->sensor_address;
+			newSensor.sensorInfo.sensorType 			= sensor_info->sensor_type;
+			newSensor.sensorInfo.value.sensorHWValue	= sensorData;
+			newSensor.sensorInfo.value.sensorUIValue 	= sensorData;
+			newSensor.sensorInfo.flags.isAvalibale  	= YES;
+			sensor.sensorInfo.flags.isValueCng 			= NO;
+			sensor.sensorInfo.flags.isEvent				= NO;
+			newSensor.sensorInfo.lastUpdate 			= CommonMethods::getTimestampMillis();
 			
 			add (newSensor);
 			
@@ -256,6 +250,10 @@ CacheDB::updateSensorsValueHandler (cache_db_msg_t& data) {
 		}
 		
 		sensor_info = (rfcomm_sensor_info *)data_ptr;
+	}
+	
+	if (dbChanged == true) {
+		EventMng::apiAlertDBChanges ();
 	}
 }
 
@@ -276,17 +274,7 @@ CacheDB::addSensorEvent (cache_db_msg_t& data) {
 }
 
 void
-CacheDB::addSensorTimer (cache_db_msg_t& data) {
-
-}
-
-void
 CacheDB::removeSensorEvent (cache_db_msg_t& data) {
-
-}
-
-void
-CacheDB::removeSensorTimer (cache_db_msg_t& data) {
 
 }
 
@@ -330,38 +318,4 @@ SensorInfo::findEvent (uint32_t id, sensor_event_t& event) {
 int
 SensorInfo::getEventSize (){
 	return sensorEvents.size();
-}
-	
-void
-SensorInfo::addTimer (sensor_timer_t &timer) {
-	sensorTimers.push_back (timer);
-}
-
-bool
-SensorInfo::removeTimer (uint32_t id) {
-	for (std::vector<sensor_timer_t>::iterator item = sensorTimers.begin(); item != sensorTimers.end(); ++item) {
-        if (item->timerId == id) {
-            sensorTimers.erase (item);
-            return true;
-        }
-    }
-	
-	return false;
-}
-
-bool
-SensorInfo::findTimer (uint32_t id, sensor_timer_t& timer) {
-	for (std::vector<sensor_timer_t>::iterator item = sensorTimers.begin(); item != sensorTimers.end(); ++item) {
-        if (item->timerId == id) {
-			timer = *item;
-            return true;
-        }
-    }
-	
-	return false;
-}
-
-int
-SensorInfo::getTimerSize () {
-	return sensorTimers.size();
 }

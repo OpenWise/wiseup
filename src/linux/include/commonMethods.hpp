@@ -10,13 +10,10 @@
 #include <stdint.h>
 #include <sys/time.h>
 #include "wise_ipc.h"
+#include "wise_rfcomm.hpp"
 
 #define YES 	1
 #define NO 		0
-
-#define SP_UPDATE_SENSOR_INFO 				1
-#define SP_SET_SENSOR_AVAILABILITY			2
-#define SP_SET_ALL_SENSOR_NOT_CONNECTED		3
 
 typedef struct {
     uint16_t    magic; 
@@ -25,13 +22,6 @@ typedef struct {
 	bool		isGeneratePacketID;
 	uint8_t		transCounter;		// how many times this msg's packet was sent
 } nrf24l01_msg_t;
-
-typedef struct {
-	uint8_t		spId;
-	uint8_t		args[16];
-    rfcomm_data packet;
-    uint64_t    timestamp;
-} db_msg_t;
 
 typedef struct {
         pthread_cond_t  cond;

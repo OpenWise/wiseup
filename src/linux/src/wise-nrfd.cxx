@@ -29,6 +29,8 @@
 #include "wise_client_handler.h"
 #include "wiseNrfAckQueue.h"
 #include "commonMethods.hpp"
+#include "wiseCacheDB.h"
+#include "wiseDBMng.h"
 
 #include <errno.h>
 
@@ -79,20 +81,11 @@ dataHandling () {
 			}
 		} else {
 			/* 2.1. Execute the requested command*/
-			cmdHandler->commandHandler (wisePacketRX);
+			// cmdHandler->commandHandler (wisePacketRX);
+			
 			printf ("(wise-nrfd) [dataHandling] Updating DB with new sensor data \n");
-			WiseIPC *ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
-			
-			if (ipcDB->setClient () == SUCCESS) {
-				memcpy(&msg.packet, sensor->m_rxBuffer, 32);
-				ipcDB->setBuffer((unsigned char *)&msg);
-				msg.spId = SP_UPDATE_SENSOR_INFO;
-				if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
-			} else {
-				printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
-			}
-			
-			delete ipcDB;
+			WiseDBMng::apiUpdateSensorInfo ((rfcomm_data *)sensor->m_rxBuffer);
+			CacheDB::apiUpdateSensorsValueFromRfcommData ((rfcomm_data *)sensor->m_rxBuffer);
 		}
     }
 }
@@ -258,7 +251,7 @@ outgoingNrf24l01 () {
         pthread_mutex_lock (&msgPullSyncContext.mutex);
         nrf24l01_msg_t msg = messagePull.back();
         messagePull.pop_back();
-        pthread_mutex_unlock (&msgPullSyncContext.mutex); 
+        pthread_mutex_unlock (&msgPullSyncContext.mutex);
 
         rfcomm_data *wisePacket = (rfcomm_data *)msg.packet;
         msg.timestamp = CommonMethods::getTimestampMillis();
@@ -337,20 +330,6 @@ deamonize () {
     printf("\nChange the current working directory... [SUCCESS]\n");
 }
 
-void
-initDatabase () {
-	db_msg_t 	msg;
-	WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
-	if (ipcDB->setClient () == SUCCESS) {
-		ipcDB->setBuffer((unsigned char *)&msg);
-		msg.spId = SP_SET_ALL_SENSOR_NOT_CONNECTED;
-		if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
-	} else {
-		printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
-	}
-	delete ipcDB;
-}
-
 int
 main (int argc, char **argv)
 {
@@ -400,12 +379,20 @@ main (int argc, char **argv)
     ackQueue        = new NrfAckQueue ();
     timerNTM->setTimer (1); //set up a delay timer
     timerRUD->setTimer (60);
+	
+	WiseDBDAL* wiseDal = new WiseDBDAL ();
+	WiseDBMng* wiseDB  = new WiseDBMng (wiseDal);
+	
+	if (!wiseDB->start()) {
+		printf("************** DB did not start *************\n");
+		exit (-1);
+	}
 
     if (!ackQueue->start()) {
 		printf("************** ACK_QUEUE did not start *************\n");
     }
 	
-	initDatabase ();
+	WiseDBMng::apiSetAllSensorNotConnected ();
 
     /* The Big Loop */
     while (!running) {
@@ -420,9 +407,11 @@ main (int argc, char **argv)
         }
     }
 
+	wiseDB->stop();
 	ackQueue->stop();
-
+	
     delete ackQueue;
+	delete wiseDB;
 	delete sensor;
     delete timerNTM;
     delete timerRUD;

@@ -18,16 +18,14 @@
 
 using namespace std;
 
-#define CACHE_DB_UPDATE_SENSORS_VALUE		1
-#define CACHE_DB_UPDATE_SENSOR_VALUE		2
-#define CACHE_DB_UPDATE_SENSOR_AVAILABLE	3
-#define CACHE_DB_ADD_EVENT					4
-#define CACHE_DB_ADD_TIMER					5
-#define CACHE_DB_REMOVE_EVENT				6
-#define CACHE_DB_REMOVE_TIMER				7
+#define CACHE_DB_UPDATE_SENSORS_VALUE_FROM_RFCOMM_DATA		1
+#define CACHE_DB_UPDATE_SENSOR_VALUE						2
+#define CACHE_DB_UPDATE_SENSOR_AVAILABLE					3
+#define CACHE_DB_ADD_EVENT									4
+#define CACHE_DB_REMOVE_EVENT								5
 
-#define PHP_REQUESTOR				1
-#define HW_REQUESTOR				2
+#define PHP_REQUESTOR		1
+#define HW_REQUESTOR		2
 
 typedef struct {
 	uint8_t		available;
@@ -54,17 +52,22 @@ typedef struct {
 typedef struct { 
 	uint8_t isAvalibale	: 1;
 	uint8_t isEvent		: 1;
-	uint8_t isTimer		: 1;
+	uint8_t isValueCng	: 1;
 	uint8_t reserved	: 5;
 } sensor_control_t;
+
+typedef struct { 
+	uint16_t			sensorHWValue;
+	uint16_t			sensorUIValue;
+} sensor_value_t;
 
 typedef struct { 
 	long long 			sensorAddress;
 	long long			hubAddress;
 	uint8_t				sensorPort;
 	uint8_t				sensorType;
-	uint16_t			sensorHWValue;
-	uint16_t			sensorUIValue;
+	sensor_value_t		value;
+	sensor_value_t		backup;
 	uint32_t			lastUpdate;
 	sensor_control_t	flags;
 } sensor_info_t;
@@ -87,14 +90,8 @@ public:
 	bool			 	findEvent (uint32_t id, sensor_event_t& event);
 	int 				getEventSize ();
 	
-	void 				addTimer (sensor_timer_t &timer);
-	bool 				removeTimer (uint32_t id);
-	bool 				findTimer (uint32_t id, sensor_timer_t& timer);
-	int 				getTimerSize ();
-	
 	sensor_info_t			sensorInfo;
 	vector<sensor_event_t> 	sensorEvents;
-	vector<sensor_timer_t> 	sensorTimers;
 };
 
 class CacheDB {
@@ -102,13 +99,11 @@ public:
 	CacheDB ();
 	~CacheDB ();
 	
-	static void apiUpdateSensorsValue (rfcomm_data* data);
+	static void apiUpdateSensorsValueFromRfcommData (rfcomm_data* data);
 	/*static void apiUpdateSensorValue (sensor_info_t& data);
 	static void apiUpdateSensorAvailable (sensor_info_t& data, bool available);
 	static void apiAddSensorEvent (rfcomm_data* data, sensor_event_t& event);
-	static void apiAddSensorTimer (rfcomm_data* data, sensor_timer_t& timer);
-	static void apiRemoveSensorEvent (rfcomm_data* data, uint32_t id);
-	static void apiRemoveSensorTimer (rfcomm_data* data, uint32_t id);*/
+	static void apiRemoveSensorEvent (rfcomm_data* data, uint32_t id);*/
 	
 	void add (SensorInfo &info);
 	bool remove (long long id);
@@ -118,16 +113,15 @@ public:
 	bool start ();
 	void stop ();
 	
-	void updateSensorsValueHandler (cache_db_msg_t& data);
+	void updateSensorsValueFromRfcommDataHandler (cache_db_msg_t& data);
 	void updateSensorValue (cache_db_msg_t& data);
 	void updateSensorAvailable (cache_db_msg_t& data);
 	void addSensorEvent (cache_db_msg_t& data);
-	void addSensorTimer (cache_db_msg_t& data);
 	void removeSensorEvent (cache_db_msg_t& data);
-	void removeSensorTimer (cache_db_msg_t& data);
 	
 	bool					m_isWorking;
 	sync_context_t			m_lock;
+	vector<SensorInfo> 		m_db;
 
 private:
 	void initDB ();
@@ -135,5 +129,4 @@ private:
 	
 	MySQL *				m_dbconn;
 	pthread_t       	m_worker;
-	vector<SensorInfo> 	m_db;
 };

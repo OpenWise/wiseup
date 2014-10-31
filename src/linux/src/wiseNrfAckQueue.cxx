@@ -15,7 +15,8 @@ worker (void * args) {
 	WiseIPC *ipcPacketsOut = NULL;
 	while (obj->m_isWorking) {
 		if (!obj->m_isQueueEmpty) {
-			nrf24l01_msg_t msg = obj->pop();
+			nrf24l01_msg_t msg;
+			obj->pop(msg);
 
 			ipcPacketsOut = new WiseIPC ("/tmp/wiseup/nrf_outgoing_queue");
 			if ( (CommonMethods::getTimestampMillis() - msg.timestamp) > 3000000) {
@@ -126,8 +127,8 @@ NrfAckQueue::push (nrf24l01_msg_t &msg) {
 	add (msg);
 }
 
-nrf24l01_msg_t&
-NrfAckQueue::pop () {
+bool
+NrfAckQueue::pop (nrf24l01_msg_t& data) {
 	pthread_mutex_lock (&m_lock.mutex);
 	nrf24l01_msg_t msg = m_messagePull.back();				
 	m_messagePull.pop_back();
@@ -137,7 +138,9 @@ NrfAckQueue::pop () {
 		m_isQueueEmpty = true;
 	}
 	
-	return msg;
+	memcpy (&data, &msg, sizeof (nrf24l01_msg_t));
+	
+	return true;
 }
 
 int

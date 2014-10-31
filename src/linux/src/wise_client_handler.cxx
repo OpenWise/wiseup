@@ -9,6 +9,7 @@
 
 #include "wise_client_handler.h"
 #include "commonMethods.hpp"
+#include "wiseDBMng.h"
 
 using namespace std;
 
@@ -25,7 +26,7 @@ wise_status_t
 WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
     WiseClient* device = findClient (wisePacket->sender);
 	
-	CommonMethods::printBuffer("(wise-nrfd) [registrationCheck] ", wisePacket->sender, 5);
+	CommonMethods::printBuffer("(WiseClientHandler) [registrationCheck] ", wisePacket->sender, 5);
     
     if (wisePacket->data_information.data_type == DEVICE_PROT_DATA_TYPE) {
         rfcomm_device_prot* prot = (rfcomm_device_prot*)wisePacket->data_frame.unframeneted.data;
@@ -38,20 +39,7 @@ WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
                 if (device->status == DISCOVERY) {
                     return DISCOVERY;
                 } else if (device->status == CONNECTED) {
-					// Set HUB as available
-					db_msg_t 	msg;
-					WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
-					if (ipcDB->setClient () == SUCCESS) {
-						memcpy(&msg.packet, wisePacket, 32);
-						ipcDB->setBuffer((unsigned char *)&msg);
-						msg.spId = SP_SET_SENSOR_AVAILABILITY;
-						msg.args[0] = YES;
-						if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
-					} else {
-						printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
-					}
-					delete ipcDB;
-				
+					WiseDBMng::apiSetSensorAvailability (wisePacket, true); // Set HUB as available
                     return CONNECTED;
                 }
             } else {
@@ -66,7 +54,7 @@ WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
                 client.status       = DISCOVERY;
                 m_clients.push_back(client);
 				
-				printf ("(wise-nrfd) [WiseClientHandler::registrationCheck] Adding new device \n");
+				printf ("(WiseClientHandler) [registrationCheck] Adding new device \n");
 			
                 return DISCOVERY;
             }
@@ -74,19 +62,7 @@ WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
     } else {
         if (device != NULL) {
             device->timestamp = (uint64_t)time(NULL);
-			// Set HUB as available
-			db_msg_t 	msg;
-			WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
-			if (ipcDB->setClient () == SUCCESS) {
-				memcpy(&msg.packet, wisePacket, 32);
-				ipcDB->setBuffer((unsigned char *)&msg);
-				msg.spId = SP_SET_SENSOR_AVAILABILITY;
-				msg.args[0] = YES;
-				if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
-			} else {
-				printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
-			}
-			delete ipcDB;
+			WiseDBMng::apiSetSensorAvailability (wisePacket, true); // Set HUB as available
             return CONNECTED;
         }
     }
@@ -98,25 +74,16 @@ void
 WiseClientHandler::removeUnusedDeveices () {
     for (std::vector<WiseClient>::iterator item = m_clients.begin(); item != m_clients.end(); ++item) {
         if ( (uint64_t)time(NULL) - item->timestamp > 60) {
-            printf ("(wise-nrfd) Delete non-resposive client ");
+            printf ("(WiseClientHandler) [removeUnusedDeveices] ");
             item->printAddress();
-            m_clients.erase (item);
+            
+			rfcomm_data packet;
+			memcpy(packet.sender, item->address, 5);
+			WiseDBMng::apiSetSensorAvailability (&packet, false); // Set HUB as NOT available
 			
-			// Set HUB as not available
-			db_msg_t 	msg;
-			WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
-			if (ipcDB->setClient () == SUCCESS) {
-				memcpy(msg.packet.sender, item->address, 5);
-				ipcDB->setBuffer((unsigned char *)&msg);
-				msg.spId = SP_SET_SENSOR_AVAILABILITY;
-				msg.args[0] = NO;
-				if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
-			} else {
-				printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
-			}
-			delete ipcDB;
+			m_clients.erase (item);
 			
-            return;
+			return;
         }
     }
 }
@@ -144,7 +111,7 @@ WiseClientHandler::sendRegistration () {
     rfcomm_data *wisePacketRX = (rfcomm_data *)m_net->ptrRX;
     rfcomm_data *wisePacketTX = (rfcomm_data *)msg.packet;
 
-    /* Create pacakge */
+    /* Create package */
     wisePacketTX->data_information.data_type      = DEVICE_PROT_DATA_TYPE;
     wisePacketTX->data_information.data_size      = DEVICE_PROT_CONN_DATA_SIZE;
     wisePacketTX->control_flags.is_fragmeneted    = 0;
@@ -166,8 +133,10 @@ WiseClientHandler::sendRegistration () {
     WiseIPC *ipcPacketsOut = new WiseIPC ("/tmp/wiseup/nrf_outgoing_queue");
     if (ipcPacketsOut->setClient () == SUCCESS) {
         ipcPacketsOut->setBuffer((unsigned char *)&msg);
-        if (ipcPacketsOut->sendMsg(sizeof (nrf24l01_msg_t)) == false) { }
-        else { CommonMethods::printBuffer ("(wise-nrfd) [WiseClientHandler::sendRegistration] Registration for ", wisePacketTX->target, 5); }
+        if (ipcPacketsOut->sendMsg(sizeof (nrf24l01_msg_t)) == true) {
+			CommonMethods::printBuffer ("(WiseClientHandler) [sendRegistration] Registration for ", wisePacketTX->target, 5);
+		}
+        else { }
     }
 
     delete ipcPacketsOut;

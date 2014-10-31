@@ -28,7 +28,7 @@ public:
 	bool find (uint16_t id);
 	void push (nrf24l01_msg_t &msg);
 	int getSize ();
-	nrf24l01_msg_t & pop ();
+	bool pop (nrf24l01_msg_t& msg);
 
 	bool					m_isQueueEmpty;
 	bool					m_isWorking;
