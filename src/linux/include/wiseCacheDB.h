@@ -68,7 +68,7 @@ typedef struct {
 	uint8_t				sensorType;
 	sensor_value_t		value;
 	sensor_value_t		backup;
-	uint32_t			lastUpdate;
+	uint64_t			lastUpdate;
 	sensor_control_t	flags;
 } sensor_info_t;
 
@@ -100,14 +100,12 @@ public:
 	~CacheDB ();
 	
 	static void apiUpdateSensorsValueFromRfcommData (rfcomm_data* data);
-	/*static void apiUpdateSensorValue (sensor_info_t& data);
-	static void apiUpdateSensorAvailable (sensor_info_t& data, bool available);
-	static void apiAddSensorEvent (rfcomm_data* data, sensor_event_t& event);
-	static void apiRemoveSensorEvent (rfcomm_data* data, uint32_t id);*/
+	static void apiUpdateSensorValue (sensor_info_t& data);
 	
 	void add (SensorInfo &info);
 	bool remove (long long id);
 	bool find (long long id, SensorInfo& data);
+	void update (long long id, SensorInfo& src);
 	int getSize ();
 	
 	bool start ();
@@ -115,9 +113,6 @@ public:
 	
 	void updateSensorsValueFromRfcommDataHandler (cache_db_msg_t& data);
 	void updateSensorValue (cache_db_msg_t& data);
-	void updateSensorAvailable (cache_db_msg_t& data);
-	void addSensorEvent (cache_db_msg_t& data);
-	void removeSensorEvent (cache_db_msg_t& data);
 	
 	bool					m_isWorking;
 	sync_context_t			m_lock;

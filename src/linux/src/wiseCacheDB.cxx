@@ -48,13 +48,14 @@ cacheDBWorker (void * args) {
 void
 CacheDB::printSensorsInfo () {
 	for (std::vector<SensorInfo>::iterator item = m_db.begin(); item != m_db.end(); ++item) {
-		printf ("%lld, %lld, %d, %d, %d, %d, %d\n", item->sensorInfo.sensorAddress, 
+		printf ("%lld, %lld, %d, %d, %d, %d, %d, %lld\n", item->sensorInfo.sensorAddress, 
 													item->sensorInfo.hubAddress,
 													item->sensorInfo.sensorPort, 
 													item->sensorInfo.sensorType,
 													item->sensorInfo.value.sensorHWValue, 
 													item->sensorInfo.value.sensorUIValue, 
-													item->sensorInfo.flags.isAvalibale);
+													item->sensorInfo.flags.isAvalibale,
+													item->sensorInfo.lastUpdate);
 	}
 }
 
@@ -90,7 +91,6 @@ CacheDB::initDB () {
 	}
 	
 	m_dbconn->freeRes();
-	printSensorsInfo ();
 }
 
 CacheDB::CacheDB () {
@@ -156,8 +156,8 @@ CacheDB::find (long long id, SensorInfo& data) {
 	pthread_mutex_lock (&m_lock.mutex);
 	for (std::vector<SensorInfo>::iterator item = m_db.begin(); item != m_db.end(); ++item) {
         if (item->sensorInfo.sensorAddress == id) {
-			pthread_mutex_unlock (&m_lock.mutex);
 			data = m_db.at(counter);
+			pthread_mutex_unlock (&m_lock.mutex);
             return true;
         }
 		counter++;
@@ -165,6 +165,19 @@ CacheDB::find (long long id, SensorInfo& data) {
 	
 	pthread_mutex_unlock (&m_lock.mutex);
 	return false;
+}
+
+void
+CacheDB::update (long long id, SensorInfo& src) {
+	pthread_mutex_lock (&m_lock.mutex);
+	for (std::vector<SensorInfo>::iterator item = m_db.begin(); item != m_db.end(); ++item) {
+        if (item->sensorInfo.sensorAddress == id) {
+			memcpy (&item->sensorInfo, &src.sensorInfo, sizeof (sensor_info_t));
+			pthread_mutex_unlock (&m_lock.mutex);
+            return;
+        }
+    }
+	pthread_mutex_unlock (&m_lock.mutex);
 }
 
 int
@@ -229,6 +242,8 @@ CacheDB::updateSensorsValueFromRfcommDataHandler (cache_db_msg_t& data) {
 				sensor.sensorInfo.flags.isValueCng = YES;
 				dbChanged = true;
 			}
+
+			update (sensor_address, sensor);
 		} else {
 			// TODO - Add new sensor to the cache DB
 			SensorInfo newSensor;
@@ -240,8 +255,8 @@ CacheDB::updateSensorsValueFromRfcommDataHandler (cache_db_msg_t& data) {
 			newSensor.sensorInfo.value.sensorHWValue	= sensorData;
 			newSensor.sensorInfo.value.sensorUIValue 	= sensorData;
 			newSensor.sensorInfo.flags.isAvalibale  	= YES;
-			sensor.sensorInfo.flags.isValueCng 			= NO;
-			sensor.sensorInfo.flags.isEvent				= NO;
+			newSensor.sensorInfo.flags.isValueCng 		= NO;
+			newSensor.sensorInfo.flags.isEvent			= NO;
 			newSensor.sensorInfo.lastUpdate 			= CommonMethods::getTimestampMillis();
 			
 			add (newSensor);
@@ -258,25 +273,18 @@ CacheDB::updateSensorsValueFromRfcommDataHandler (cache_db_msg_t& data) {
 }
 
 void
+CacheDB::apiUpdateSensorValue (sensor_info_t& data) {
+
+}
+
+void
 CacheDB::updateSensorValue (cache_db_msg_t& data) {
-	
-}
-
-void
-CacheDB::updateSensorAvailable (cache_db_msg_t& data) {
-	cache_db_available_arg_t* availablePtr = (cache_db_available_arg_t*)data.args;
-	bool available = (availablePtr->available == 1) ? true : false;
-}
-
-void
-CacheDB::addSensorEvent (cache_db_msg_t& data) {
 
 }
 
-void
-CacheDB::removeSensorEvent (cache_db_msg_t& data) {
-
-}
+/* **
+	Class - SensorInfo
+** */
 
 SensorInfo::SensorInfo () {
 
