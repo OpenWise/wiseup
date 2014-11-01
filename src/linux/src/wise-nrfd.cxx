@@ -392,6 +392,7 @@ main (int argc, char **argv)
 		printf("************** ACK_QUEUE did not start *************\n");
     }
 	
+	usleep (2000); // Remove race condition, wiseDB need to start its engine.
 	WiseDBMng::apiSetAllSensorNotConnected ();
 
     /* The Big Loop */

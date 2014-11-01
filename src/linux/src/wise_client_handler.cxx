@@ -58,7 +58,14 @@ WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
 			
                 return DISCOVERY;
             }
-        }
+        } else if (prot->device_cmd == DEVICE_PROT_CONNECT_CHK) {
+			if (device != NULL) {
+				printf ("(WiseClientHandler) [registrationCheck] KEEPALIVE PACKET \n");
+				device->timestamp = (uint64_t)time(NULL);
+				WiseDBMng::apiSetSensorAvailability (wisePacket, true); // Set HUB as available
+				return CONNECTED;
+			}
+		}
     } else {
         if (device != NULL) {
             device->timestamp = (uint64_t)time(NULL);
