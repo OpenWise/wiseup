@@ -8,7 +8,7 @@
 #include "nrf24l01_receiver_handler.h"
 #include "device_methods.h"
 
-#define DISCOVERY_MODE_INTERVAL		                  120000
+#define DISCOVERY_MODE_INTERVAL		                  300000
 #define DISCOVERY_MODE_TIMEOUT                            5000
 #define CONNECTED_MODE_READ_SENSORS_INTERVAL              1000
 #define CONNECTED_MODE_READ_SENSORS_AS_KEEPALIVE_INTERVAL 30000
@@ -101,14 +101,22 @@ void loop () {
       // Read sensors data each second
       if (abs (millis () - device_context.connected_read_sensors_interval) > CONNECTED_MODE_READ_SENSORS_INTERVAL) {
         Serial.println ("(TLM)# CONNECTED");
+        
+        device_context.mapping_ptr[DIGITAL_TEMPERATURE_ADDR - 1].backup = device_context.mapping_ptr[DIGITAL_TEMPERATURE_ADDR - 1].value;
         device_context.mapping_ptr[DIGITAL_TEMPERATURE_ADDR - 1].value = 
                   data_noise_reduse( device_context.mapping_ptr[DIGITAL_TEMPERATURE_ADDR - 1].value, 
                                     (uint16_t) read_digital_temperature_info (&sensors), 2);
+        
+        device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].backup = device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value;                           
         device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value = 
                   data_noise_reduse( device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value,
                                     (uint16_t) read_analog_luminance_info (device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].pin), 2);
+        
+        device_context.mapping_ptr[DIGITAL_PIR_ADDR - 1].backup = device_context.mapping_ptr[DIGITAL_PIR_ADDR - 1].value;                          
         device_context.mapping_ptr[DIGITAL_PIR_ADDR - 1].value = 
                   (uint16_t) read_digital_pir_info (device_context.mapping_ptr[DIGITAL_PIR_ADDR - 1].pin);
+        
+        device_context.mapping_ptr[DIGITAL_RELAY_ADDR - 1].backup = device_context.mapping_ptr[DIGITAL_RELAY_ADDR - 1].value;       
         device_context.mapping_ptr[DIGITAL_RELAY_ADDR - 1].value = 
                   (uint16_t) read_digital_relay_info (device_context.mapping_ptr[DIGITAL_RELAY_ADDR - 1].pin);
 
@@ -118,7 +126,7 @@ void loop () {
       }
       
       if (abs (millis () - device_context.connected_read_sensors_as_keepalive_interval) > CONNECTED_MODE_READ_SENSORS_AS_KEEPALIVE_INTERVAL) {
-        send_sensors_data (&device_context, net);
+        send_keep_alive (&device_context, net);
         device_context.connected_read_sensors_as_keepalive_interval = millis ();
       }
       

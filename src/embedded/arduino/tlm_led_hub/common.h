@@ -13,11 +13,18 @@ typedef enum {
     CONNECTED = 1
 } device_status_t;
 
+typedef struct { 
+	uint8_t is_value_cng	: 1;
+	uint8_t reserved	: 7;
+} sensor_control_t;
+
 typedef struct sensor {
-  uint8_t   address;
-  uint8_t   pin;
-  uint8_t   type;
-  uint16_t  value;
+  uint8_t           address;
+  uint8_t           pin;
+  uint8_t           type;
+  uint16_t          value;
+  uint16_t          backup;
+  sensor_control_t  flags;  
 } sensor_t;
 
 typedef struct device_context_info {
