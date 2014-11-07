@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Oct 25, 2014 at 06:04 PM
+-- Generation Time: Nov 07, 2014 at 05:16 PM
 -- Server version: 5.5.38
 -- PHP Version: 5.4.4-14+deb7u12
 
@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS `sensor-data-history` (
   `time_stamp` bigint(20) NOT NULL,
   `value` int(11) NOT NULL,
   PRIMARY KEY (`record_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=258918 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=10231 ;
 
 -- --------------------------------------------------------
 
