@@ -33,6 +33,12 @@ typedef enum {
     ERROR_UNSPECIFIED                    = 99 /**< Unknown Error */
 } result_t;
 
+typedef struct {
+    uint16_t    magic; 
+    uint8_t     packet[32];
+    uint64_t    timestamp;
+} nrf24l01_msg_t;
+
 #ifdef __cplusplus
 }
 #endif

@@ -9,7 +9,6 @@
 
 #include "wise_client_handler.h"
 #include "commonMethods.hpp"
-#include "wiseDBMng.h"
 
 using namespace std;
 
@@ -25,8 +24,6 @@ WiseClientHandler::~WiseClientHandler () {
 wise_status_t
 WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
     WiseClient* device = findClient (wisePacket->sender);
-	
-	CommonMethods::printBuffer("(WiseClientHandler) [registrationCheck] ", wisePacket->sender, 5);
     
     if (wisePacket->data_information.data_type == DEVICE_PROT_DATA_TYPE) {
         rfcomm_device_prot* prot = (rfcomm_device_prot*)wisePacket->data_frame.unframeneted.data;
@@ -48,24 +45,14 @@ WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
                  * send our address back to the device. When the device will recieve 
                  * our address it will stop broadcasting and know this gateway.
                  */
-                
+                printf ("(wise-nrfd) [WiseClientHandler::registrationCheck] Adding new device \n");
                 WiseClient client   = WiseClient(wisePacket->sender);
                 client.timestamp    = (uint64_t)time(NULL);
                 client.status       = DISCOVERY;
                 m_clients.push_back(client);
-				
-				printf ("(WiseClientHandler) [registrationCheck] Adding new device \n");
-			
                 return DISCOVERY;
             }
-        } else if (prot->device_cmd == DEVICE_PROT_CONNECT_CHK) {
-			if (device != NULL) {
-				printf ("(WiseClientHandler) [registrationCheck] KEEPALIVE PACKET \n");
-				device->timestamp = (uint64_t)time(NULL);
-				WiseDBMng::apiSetSensorAvailability (wisePacket, true); // Set HUB as available
-				return CONNECTED;
-			}
-		}
+        }
     } else {
         if (device != NULL) {
             device->timestamp = (uint64_t)time(NULL);
@@ -81,16 +68,10 @@ void
 WiseClientHandler::removeUnusedDeveices () {
     for (std::vector<WiseClient>::iterator item = m_clients.begin(); item != m_clients.end(); ++item) {
         if ( (uint64_t)time(NULL) - item->timestamp > 60) {
-            printf ("(WiseClientHandler) [removeUnusedDeveices] ");
+            printf ("(wise-nrfd) Delete non-resposive client ");
             item->printAddress();
-            
-			rfcomm_data packet;
-			memcpy(packet.sender, item->address, 5);
-			WiseDBMng::apiSetSensorAvailability (&packet, false); // Set HUB as NOT available
-			
-			m_clients.erase (item);
-			
-			return;
+            m_clients.erase (item);
+            return;
         }
     }
 }
@@ -118,7 +99,7 @@ WiseClientHandler::sendRegistration () {
     rfcomm_data *wisePacketRX = (rfcomm_data *)m_net->ptrRX;
     rfcomm_data *wisePacketTX = (rfcomm_data *)msg.packet;
 
-    /* Create package */
+    /* Create pacakge */
     wisePacketTX->data_information.data_type      = DEVICE_PROT_DATA_TYPE;
     wisePacketTX->data_information.data_size      = DEVICE_PROT_CONN_DATA_SIZE;
     wisePacketTX->control_flags.is_fragmeneted    = 0;
@@ -132,18 +113,13 @@ WiseClientHandler::sendRegistration () {
     rfcomm_device_prot* deviceProt              = (rfcomm_device_prot *)wisePacketTX->data_frame.unframeneted.data;
     deviceProt->device_cmd                      = DEVICE_PROT_CONNECT_ADDR;
     memcpy (deviceProt->device_data, local_address, 5);
-	
-	memcpy(msg.packet, wisePacketTX, 32);
-	msg.isGeneratePacketID = true;
 
     /* Send to OUTGOING queue */
     WiseIPC *ipcPacketsOut = new WiseIPC ("/tmp/wiseup/nrf_outgoing_queue");
     if (ipcPacketsOut->setClient () == SUCCESS) {
-        ipcPacketsOut->setBuffer((unsigned char *)&msg);
-        if (ipcPacketsOut->sendMsg(sizeof (nrf24l01_msg_t)) == true) {
-			CommonMethods::printBuffer ("(WiseClientHandler) [sendRegistration] Registration for ", wisePacketTX->target, 5);
-		}
-        else { }
+        ipcPacketsOut->setBuffer((unsigned char *)wisePacketTX);
+        if (ipcPacketsOut->sendMsg(32) == false) { }
+        else { CommonMethods::printBuffer ("(wise-nrfd) [WiseClientHandler::sendRegistration] Registration for ", wisePacketTX->target, 5); }
     }
 
     delete ipcPacketsOut;

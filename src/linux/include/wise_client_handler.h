@@ -16,8 +16,7 @@
 #include <stdio.h>
 
 #include "nrf24l01.h"
-#include "wise_rfcomm.hpp"
-#include "wise_ipc.h"
+#include "wiseDBMng.h"
 
 using namespace std;
 

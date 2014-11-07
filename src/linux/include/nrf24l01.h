@@ -121,7 +121,7 @@
 
 namespace comm {
 
-typedef void (* funcPtrVoidVoid) ();
+typedef void (* funcPtrVoidVoid) (void *);
 
 typedef enum {
     NRF_250KBPS = 0,
@@ -319,6 +319,7 @@ class NRF24L01 {
         uint8_t m_bleBuffer [32];
         
         funcPtrVoidVoid dataRecievedHandler;
+		void * dataContext;
         
         void nrf_print_details ();
         void nrf_print_byte (char s[], uint8_t reg, uint8_t len);
@@ -377,100 +378,35 @@ class NRF24L01 {
 
 class WiseRFComm {
 	public:
-		WiseRFComm (NRF24L01 * network, funcPtrVoidVoid nrfHandler) {
-			m_network = network;
-			
-			init ();
-			
-			m_network->dataRecievedHandler = nrfHandler;
-            
-            ptrRX = m_network->m_rxBuffer;
-            ptrTX = m_network->m_txBuffer;
-		}
-		
-		~WiseRFComm () {
-		}
+		WiseRFComm (NRF24L01 * network, funcPtrVoidVoid dataHandler, funcPtrVoidVoid broadcastHandler);		
+		~WiseRFComm ();
 
-		void sendPacket (uint8_t * target) {
-			rfcomm_data * packet = (rfcomm_data *)m_network->m_txBuffer;
+		void sendPacket (uint8_t * target);
 
-            init ();
-			memcpy (packet->target, target, 5);
-			setTarget (target);
-			m_network->send ();
-            init ();
-		}
+		void clearBufferTX ();
 
-		void clearBufferTX () {
-			memset (m_network->m_txBuffer, 0x0, 32);
-		}
+		void clearBufferRX ();
 
-		void clearBufferRX () {
-			memset (m_network->m_rxBuffer, 0x0, 32);
-		}
+		void setChannel (uint8_t channel);
 
-		void setChannel (uint8_t channel) {
-			m_network->setChannel (channel);
-		}
+		void setSender (uint8_t * sender);
 
-		void setSender (uint8_t * sender) {
-			memcpy (m_sender, sender, 5);
-		}
+		void setTarget (uint8_t * target);
 
-		void setTarget (uint8_t * target) {
-			memcpy (m_target, target, 5);
-		}
+		void listenForIncoming ();;
 
-		void listenForIncoming () {
-			m_network->pollListener ();
-  			usleep (10000);
-		}
-				
-		void setDataHandler (funcPtrVoidVoid handler) {
-			m_DataHandler = handler;
-		}
-
-		void setBroadcastHandler (funcPtrVoidVoid handler) {
-			m_BroadcastHandler = handler;
-		}
-
-		void parseRXRawData () {
-            uint8_t         BROADCAST_ADDR[5]   = {0xFA, 0xFA, 0xFA, 0xFA, 0xFA};
-			rfcomm_data *   packet              = (rfcomm_data *)m_network->m_rxBuffer;
-
-            printf ("\n(wise-nrfd) Got NRF signal ... \n");
-            if (packet->magic_number[0] == 0xAA && packet->magic_number[1] == 0xBB) {
-                /* BROADCASR PACKET */
-                if (!memcmp (BROADCAST_ADDR, packet->target, 5)) {
-                    m_BroadcastHandler ();
-                }
-                
-                /* UNICAST PACKET */
-                if (!memcmp (m_sender, packet->target, 5)) {
-                    m_DataHandler ();
-                }
-            }
-		}
-
-        void init () {
-            uint8_t BROADCAST_ADDR[5] = {0xFA, 0xFA, 0xFA, 0xFA, 0xFA};
-            m_network->setSourceAddress         ((uint8_t *) BROADCAST_ADDR);
-            m_network->setDestinationAddress    ((uint8_t *) BROADCAST_ADDR);
-            
-            m_network->setPayload (32);
-            m_network->configure ();
-            m_network->setSpeedRate (NRF_250KBPS);
-            m_network->setChannel (99);
-        }
+        void init ();
         
         uint8_t*    ptrRX;
         uint8_t*    ptrTX;
 		
-	private:
 		NRF24L01*	m_network;
 		
 		uint8_t		m_sender[5];
 		uint8_t		m_target[5];
+		
+		uint64_t	m_broadcastPacketCounter;
+		uint64_t	m_dataPacketCounter;
         
 		funcPtrVoidVoid m_DataHandler;
 		funcPtrVoidVoid m_BroadcastHandler;

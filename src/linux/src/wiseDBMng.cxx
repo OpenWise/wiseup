@@ -86,6 +86,7 @@ dbMngWorker (void * args) {
 		
 		switch (msg.spId) {
 			case SP_UPDATE_SENSOR_INFO: {
+				printf ("(WiseDBMng) [dbMngWorker] SP_UPDATE_SENSOR_INFO\n");
 				uint8_t* data_ptr = wisePacket->data_frame.unframeneted.data;
 				sensor_info = (rfcomm_sensor_info *)data_ptr;
 
@@ -123,6 +124,7 @@ dbMngWorker (void * args) {
 			}
 			break;
 			case SP_SET_ALL_SENSOR_NOT_CONNECTED: {
+				// Calling DAL methods
 				obj->m_Dal->setAllSensorNotConnected ();
 			}
 			break;
@@ -139,7 +141,6 @@ WiseDBMng::WiseDBMng (WiseDBDAL* db) {
 }
 
 WiseDBMng::~WiseDBMng () {
-
 }
 
 bool

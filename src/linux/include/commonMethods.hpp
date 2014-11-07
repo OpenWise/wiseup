@@ -15,17 +15,12 @@
 #define YES 	1
 #define NO 		0
 
-typedef struct {
-    uint16_t    magic; 
-    uint8_t     packet[32];
-    uint64_t    timestamp;
-	bool		isGeneratePacketID;
-	uint8_t		transCounter;		// how many times this msg's packet was sent
-} nrf24l01_msg_t;
+#define YES 	1
+#define NO 		0
 
 typedef struct {
-        pthread_cond_t  cond;
-        pthread_mutex_t mutex;
+	pthread_cond_t  cond;
+	pthread_mutex_t mutex;
 } sync_context_t;
 
 class CommonMethods {
