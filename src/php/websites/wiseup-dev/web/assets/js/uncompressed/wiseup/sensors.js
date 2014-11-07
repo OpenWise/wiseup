@@ -61,8 +61,10 @@ ui_builder_sensor.prototype.ui_switch_object = function () {
 		html = html.replace('!ph_sensor_web_value!', "On");
 	} else if (this.sensor.action == 1 && this.sensor.value == 0) {
 		html = html.replace('!ph_sensor_web_value!', "On <i class='icon-spinner icon-spin orange bigger-125'></i>");
+		switch_type_click_handle(this, this.sensor.sensor_id, 1);
 	} else if (this.sensor.action == 0 && this.sensor.value == 1) {
 		html = html.replace('!ph_sensor_web_value!', "Off <i class='icon-spinner icon-spin orange bigger-125'></i>");
+		switch_type_click_handle(this, this.sensor.sensor_id, 0);
 	}
 	
 	// onmouseover='this.style.color=\"#0083C9\";' onmouseout='this.style.color=\"#C3C3C3\";'
