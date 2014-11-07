@@ -11,6 +11,14 @@
 #include <sys/time.h>
 #include "wise_ipc.h"
 
+#define YES 	1
+#define NO 		0
+
+typedef struct {
+	pthread_cond_t  cond;
+	pthread_mutex_t mutex;
+} sync_context_t;
+
 class CommonMethods {
 public:
     static uint64_t getTimestampMillis () {

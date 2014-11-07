@@ -36,6 +36,7 @@ WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
                 if (device->status == DISCOVERY) {
                     return DISCOVERY;
                 } else if (device->status == CONNECTED) {
+					WiseDBMng::apiSetSensorAvailability (wisePacket, true); // Set HUB as available
                     return CONNECTED;
                 }
             } else {
@@ -55,6 +56,7 @@ WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
     } else {
         if (device != NULL) {
             device->timestamp = (uint64_t)time(NULL);
+			WiseDBMng::apiSetSensorAvailability (wisePacket, true); // Set HUB as available
             return CONNECTED;
         }
     }

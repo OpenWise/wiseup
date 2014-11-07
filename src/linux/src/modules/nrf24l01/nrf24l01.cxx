@@ -30,6 +30,100 @@
 
 using namespace comm;
 
+void
+nrfRecieveHandler (void * arg) {
+	WiseRFComm*		obj 				= (WiseRFComm*) arg;
+	uint8_t         BROADCAST_ADDR[5]   = {0xFA, 0xFA, 0xFA, 0xFA, 0xFA};
+	rfcomm_data *   packet              = (rfcomm_data *)obj->m_network->m_rxBuffer;
+
+	if (packet->magic_number[0] == 0xAA && packet->magic_number[1] == 0xBB) {
+		/* BROADCASR PACKET */
+		if (!memcmp (BROADCAST_ADDR, packet->target, 5)) {
+			obj->m_BroadcastHandler (obj->m_network->m_rxBuffer);
+			obj->m_broadcastPacketCounter++;
+		}
+		
+		/* UNICAST PACKET */
+		if (!memcmp (obj->m_sender, packet->target, 5)) {
+			obj->m_DataHandler (obj->m_network->m_rxBuffer);
+			obj->m_dataPacketCounter++;
+		}
+	}
+}
+
+WiseRFComm::WiseRFComm (NRF24L01 * network, funcPtrVoidVoid dataHandler, funcPtrVoidVoid broadcastHandler) {
+	m_network = network;
+	
+	init ();
+	m_network->dataRecievedHandler = nrfRecieveHandler;
+	m_network->dataContext = this;
+	m_DataHandler = dataHandler;
+	m_BroadcastHandler = broadcastHandler;
+	
+	ptrRX = m_network->m_rxBuffer;
+	ptrTX = m_network->m_txBuffer;
+	
+	m_broadcastPacketCounter 	= 0;
+	m_dataPacketCounter 		= 0;
+}
+
+WiseRFComm::~WiseRFComm () {
+}
+
+void
+WiseRFComm::sendPacket (uint8_t * target) {
+	rfcomm_data * packet = (rfcomm_data *)m_network->m_txBuffer;
+
+	init ();
+	memcpy (packet->target, target, 5);
+	setTarget (target);
+	m_network->send ();
+	init ();
+}
+
+void
+WiseRFComm::clearBufferTX () {
+	memset (m_network->m_txBuffer, 0x0, 32);
+}
+
+void
+WiseRFComm::clearBufferRX () {
+	memset (m_network->m_rxBuffer, 0x0, 32);
+}
+
+void
+WiseRFComm::setChannel (uint8_t channel) {
+	m_network->setChannel (channel);
+}
+
+void
+WiseRFComm::setSender (uint8_t * sender) {
+	memcpy (m_sender, sender, 5);
+}
+
+void
+WiseRFComm::setTarget (uint8_t * target) {
+	memcpy (m_target, target, 5);
+}
+
+void
+WiseRFComm::listenForIncoming () {
+	m_network->pollListener ();
+	usleep (10000);
+}
+
+void
+WiseRFComm::init () {
+	uint8_t BROADCAST_ADDR[5] = {0xFA, 0xFA, 0xFA, 0xFA, 0xFA};
+	m_network->setSourceAddress         ((uint8_t *) BROADCAST_ADDR);
+	m_network->setDestinationAddress    ((uint8_t *) BROADCAST_ADDR);
+	
+	m_network->setPayload (32);
+	m_network->configure ();
+	m_network->setSpeedRate (NRF_250KBPS);
+	m_network->setChannel (99);
+}
+
 NRF24L01::NRF24L01 (uint8_t cs, uint8_t ce) {
     init (cs, ce);
 }
@@ -325,7 +419,7 @@ void
 NRF24L01::pollListener() {
     if (dataReady()) {
         getData (m_rxBuffer);
-        dataRecievedHandler (); /* let know that data arrived */
+        dataRecievedHandler (dataContext); /* let know that data arrived */
     }
 }
 

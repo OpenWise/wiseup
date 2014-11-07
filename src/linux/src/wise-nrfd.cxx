@@ -28,8 +28,9 @@
 #include "wise_rfcomm.hpp"
 #include "wise-timer.h"
 #include "wise_client_handler.h"
-#include "wiseNrfAckQueue.h"
 #include "commonMethods.hpp"
+
+#include "wiseDBMng.h"
 
 #include <errno.h>
 
@@ -45,7 +46,6 @@ comm::NRF24L01      *sensor 	    = NULL;
 comm::WiseRFComm    *net            = NULL;
 WiseClientHandler   *clientHandler  = NULL;
 WiseCommandHandler  *cmdHandler     = NULL;
-NrfAckQueue         *ackQueue       = NULL;
 
 /* Message queue for outgoing packets */
 vector<nrf24l01_msg_t> messagePull;
@@ -59,11 +59,9 @@ pthread_t       ipcPHPNRFOutListenerThread;
 sync_context_t  msgPullSyncContext;
 
 void
-dataHandling () {
-    rfcomm_data *wisePacketRX = (rfcomm_data *)sensor->m_rxBuffer;
-
+dataHandling (rfcomm_data * packet) {
     /* 1. Chick the registarion ID.*/
-    wise_status_t deviceStatus = clientHandler->registrationCheck (wisePacketRX);
+    wise_status_t deviceStatus = clientHandler->registrationCheck (packet);
     if (deviceStatus != CONNECTED) {
         if (deviceStatus == DISCOVERY) {
             /* 2.1. Send gateway address back to the device */
@@ -71,18 +69,9 @@ dataHandling () {
         }
 	} else {
         /* 2.1. Execute the requested command*/
-        cmdHandler->commandHandler (wisePacketRX);
+        cmdHandler->commandHandler (packet);
         printf ("(wise-nrfd) [dataHandling] Updating DB with new sensor data \n");
-        WiseIPC *ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
-        
-	    if (ipcDB->setClient () == SUCCESS) {
-	    	ipcDB->setBuffer((unsigned char *)sensor->m_rxBuffer);
-			if (ipcDB->sendMsg(32) == false) { }
-		} else {
-			printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
-		}
-        
-    	delete ipcDB;
+        WiseDBMng::apiUpdateSensorInfo (packet);
     }
 }
 
@@ -94,8 +83,8 @@ dataHandling () {
  * This method is a handler to the relevant data to this device.
  */
 void
-netLayerDataArrivedHandler () {
-    dataHandling ();
+netLayerDataArrivedHandler (void * args) {
+    dataHandling ((rfcomm_data *) args);
 }
 
 /*
@@ -106,13 +95,8 @@ netLayerDataArrivedHandler () {
  * This method handling broadcast data.
  */
 void
-netLayerBroadcastArrivedHandler () {
-    dataHandling ();
-}
-
-void
-nrfRecieveHandler () {
-    net->parseRXRawData ();
+netLayerBroadcastArrivedHandler (void * args) {
+    dataHandling ((rfcomm_data *) args);
 }
 
 void *
@@ -257,8 +241,6 @@ outgoingNrf24l01 () {
         net->sendPacket (wisePacket->target);
 
         if (wisePacket->control_flags.is_ack) {
-            msg.timestamp = CommonMethods::getTimestampMillis();
-            ackQueue->add (msg);
         }
 
         CommonMethods::printBuffer("(wise-nrfd) [outgoingNrf24l01] Sending to ", wisePacket->target, 5);
@@ -336,10 +318,8 @@ main (int argc, char **argv)
 	printf("Initiating nrf24l01...\n");
     /* Init nRF24l01 communication */
     sensor = new comm::NRF24L01 (17, 22);
-    net = new comm::WiseRFComm (sensor, nrfRecieveHandler);
+    net = new comm::WiseRFComm (sensor, netLayerDataArrivedHandler, netLayerBroadcastArrivedHandler);
     net->setSender (local_address);
-    net->setDataHandler (netLayerDataArrivedHandler);
-    net->setBroadcastHandler (netLayerBroadcastArrivedHandler);
 
     printf("Starting the listener... [SUCCESS]\n");
 	// printf("Close out the standard file descriptors...\n");
@@ -355,13 +335,16 @@ main (int argc, char **argv)
     WiseTimer* timerRUD = new WiseTimer();
     clientHandler   = new WiseClientHandler  (net);
     cmdHandler      = new WiseCommandHandler (net);
-    ackQueue        = new NrfAckQueue ();
     timerNTM->setTimer (1); //set up a delay timer
     timerRUD->setTimer (60);
-
-    if (!ackQueue->start()) {
-        printf("************** ACK_QUEUE did not start *************\n");
-    }
+	
+	WiseDBDAL* 			wiseDAL 		= new WiseDBDAL ();
+	WiseDBMng* 			wiseDB  		= new WiseDBMng (wiseDAL);
+	
+	if (!wiseDB->start()) { exit (-1); }
+	
+	usleep (200000); // Remove race condition, wiseDB need to start its engine.
+	WiseDBMng::apiSetAllSensorNotConnected ();
 
     /* The Big Loop */
     while (!running) {
@@ -375,10 +358,10 @@ main (int argc, char **argv)
             clientHandler->removeUnusedDeveices ();
         }
     }
+	
+	wiseDB->stop();
+	delete wiseDB;
 
-    ackQueue->stop();
-
-    delete ackQueue;
 	delete sensor;
     delete timerNTM;
     delete timerRUD;
