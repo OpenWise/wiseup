@@ -1,1 +1,0 @@
-add_subdirectory (nrf24l01)
