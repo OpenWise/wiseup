@@ -19,8 +19,10 @@ class MySQL : DataBase {
         bool setupConnection (DBCredentials * db);
         bool executeQuery (std::string query);
         void freeRes ();
+		unsigned int getFieldsCount ();
+		
+		MYSQL_RES   *mySQLResult;
 
     private:
         MYSQL       *mySQLConnection;
-        MYSQL_RES   *mySQLResult;
 };

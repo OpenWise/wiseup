@@ -35,6 +35,7 @@ WiseDBDAL::updateSensorInfo (long long sensorAddres, long long hubAddress, uint8
 	/* Execute MySQL query */
 	m_dbconn->executeQuery(query);
 	m_dbconn->freeRes();
+	// printf ("(WiseDBDAL) [%s]\n", query);
 }
 
 void
@@ -46,7 +47,7 @@ WiseDBDAL::setSensorAvailability (long long hubAddress, bool availability) {
 	/* Execute MySQL query */
 	m_dbconn->executeQuery(query);
 	m_dbconn->freeRes();
-	printf ("(WiseDBDAL) [%s]\n", query);
+	// printf ("(WiseDBDAL) [%s]\n", query);
 }
 
 void
@@ -58,7 +59,7 @@ WiseDBDAL::setAllSensorNotConnected () {
 	/* Execute MySQL query */
 	m_dbconn->executeQuery(query);
 	m_dbconn->freeRes();
-	printf ("(WiseDBDAL) [%s]\n", query);
+	// printf ("(WiseDBDAL) [%s]\n", query);
 }
 
 void * 
@@ -116,6 +117,7 @@ dbMngWorker (void * args) {
 			}
 			break;
 			case SP_SET_SENSOR_AVAILABILITY: {
+				printf ("(WiseDBMng) [dbMngWorker] SP_SET_SENSOR_AVAILABILITY\n");
 				long long hub_address = 0;
 				memcpy (&hub_address, wisePacket->sender, 5);
 				
@@ -124,6 +126,7 @@ dbMngWorker (void * args) {
 			}
 			break;
 			case SP_SET_ALL_SENSOR_NOT_CONNECTED: {
+				printf ("(WiseDBMng) [dbMngWorker] SP_SET_ALL_SENSOR_NOT_CONNECTED\n");
 				// Calling DAL methods
 				obj->m_Dal->setAllSensorNotConnected ();
 			}

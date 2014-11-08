@@ -65,13 +65,15 @@ dataHandling (rfcomm_data * packet) {
     if (deviceStatus != CONNECTED) {
         if (deviceStatus == DISCOVERY) {
             /* 2.1. Send gateway address back to the device */
-            clientHandler->sendRegistration ();
+            clientHandler->sendRegistration (packet);
         }
 	} else {
         /* 2.1. Execute the requested command*/
         cmdHandler->commandHandler (packet);
-        printf ("(wise-nrfd) [dataHandling] Updating DB with new sensor data \n");
-        WiseDBMng::apiUpdateSensorInfo (packet);
+		WiseDBMng::apiUpdateSensorInfo (packet);
+		clientHandler->updateSensorInfo (packet);
+		
+		printf ("(wise-nrfd) [dataHandling] Updating sensor data \n");
     }
 }
 
@@ -111,9 +113,6 @@ phpCommandListener (void *) {
         int client = -1;
         while (1) {
             client = ipcNrfOut->listenIPC ();
-            printf ("(wise-nrfd) [phpCommandListener] Got client from PHP \n");
-            // nrf24l01_msg_t msg;
-
             ipcNrfOut->setBuffer ((uint8_t *)message);
             ipcNrfOut->readMsg (client, 128);
 
@@ -136,11 +135,6 @@ phpCommandListener (void *) {
                 printf ("(wise-nrfd) [phpCommandListener] hub = %lld, addr = %d, action = %d \n", hubAddress, sensorAddress, sensorAction);
 
                 uint8_t destination[5] = {0};
-                /*destination[0] = (hubAddress & 0x000000FF00000000) >> 32;
-                destination[1] = (hubAddress & 0x00000000FF000000) >> 24;
-                destination[2] = (hubAddress & 0x0000000000FF0000) >> 16;
-                destination[3] = (hubAddress & 0x000000000000FF00) >> 8;
-                destination[4] = (hubAddress & 0x00000000000000FF) >> 0;*/
 				memcpy (destination, &hubAddress, 5);
 
                 rfcomm_data *wisePacketTX = (rfcomm_data *)net->ptrTX;
@@ -165,6 +159,9 @@ phpCommandListener (void *) {
                 messagePull.push_back(msg);
                 pthread_cond_signal  (&msgPullSyncContext.cond);
                 pthread_mutex_unlock (&msgPullSyncContext.mutex);
+				
+				long long sensorAddr = (hubAddress << 8) | sensorAddress;
+				clientHandler->updateSensorUIValue (sensorAddr, sensorAction);
             } catch (...) {
                 printf ("(wise-nrfd) ERROR \n");
             }
@@ -194,7 +191,6 @@ outgoingMessageListener (void *) {
 
         int client = -1;
         while (1) {
-            printf ("(wise-nrfd) [outgoingMessageListener] Listenning...\n");
             client = ipcNrfOut->listenIPC ();
 
             nrf24l01_msg_t msg;
@@ -205,11 +201,9 @@ outgoingMessageListener (void *) {
                 messagePull.push_back (msg);
                 pthread_mutex_unlock (&msgPullSyncContext.mutex);
             }
-            catch (...) {
-
-            }
+            catch (...) {	}
             
-            printf ("(wise-nrfd) [outgoingMessageListener] Got new package\n");
+            printf ("(wise-nrfd) [outgoingMessageListener] Queueing the REQUEST\n");
             close (client);
         }
     } catch (FFError e) {
@@ -243,8 +237,8 @@ outgoingNrf24l01 () {
         if (wisePacket->control_flags.is_ack) {
         }
 
-        CommonMethods::printBuffer("(wise-nrfd) [outgoingNrf24l01] Sending to ", wisePacket->target, 5);
-        printf ("(wise-nrfd) [outgoingNrf24l01] (Messages left %d)", messagePull.size());
+		printf ("(wise-nrfd) [outgoingNrf24l01] Sending to %d %d %d %d %d\n", wisePacket->target[0], wisePacket->target[1], wisePacket->target[2], 
+												wisePacket->target[3], wisePacket->target[4]);
     }
 }
 
@@ -333,8 +327,8 @@ main (int argc, char **argv)
 
     WiseTimer* timerNTM = new WiseTimer();
     WiseTimer* timerRUD = new WiseTimer();
-    clientHandler   = new WiseClientHandler  (net);
-    cmdHandler      = new WiseCommandHandler (net);
+    clientHandler   = new WiseClientHandler  ();
+    cmdHandler      = new WiseCommandHandler ();
     timerNTM->setTimer (1); //set up a delay timer
     timerRUD->setTimer (60);
 	
@@ -345,6 +339,10 @@ main (int argc, char **argv)
 	
 	usleep (200000); // Remove race condition, wiseDB need to start its engine.
 	WiseDBMng::apiSetAllSensorNotConnected ();
+	
+	usleep (200000);
+	clientHandler->clentDataBaseInit();
+	// clientHandler->printClentInfo();
 
     /* The Big Loop */
     while (!running) {
