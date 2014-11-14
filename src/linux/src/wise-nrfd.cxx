@@ -239,6 +239,8 @@ outgoingNrf24l01 () {
 
 		printf ("(wise-nrfd) [outgoingNrf24l01] Sending to %d %d %d %d %d\n", wisePacket->target[0], wisePacket->target[1], wisePacket->target[2], 
 												wisePacket->target[3], wisePacket->target[4]);
+		printf ("(wise-nrfd) [outgoingNrf24l01] From to %d %d %d %d %d\n", wisePacket->sender[0], wisePacket->sender[1], wisePacket->sender[2], 
+												wisePacket->sender[3], wisePacket->sender[4]);
     }
 }
 

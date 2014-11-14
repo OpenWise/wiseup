@@ -103,8 +103,7 @@ WiseClientHandler::clentDataBaseInit () {
 void
 WiseClientHandler::updateSensorInfo (rfcomm_data* wisePacket) {
 	uint8_t* data_ptr = wisePacket->data_frame.unframeneted.data;
-	rfcomm_sensor_info* sensor_info = (rfcomm_sensor_info *)data_ptr;
-
+	
 	/* Parse the message */
 	long long sensor_address = 0;
 	long long hub_address 	 = 0;
@@ -114,37 +113,81 @@ WiseClientHandler::updateSensorInfo (rfcomm_data* wisePacket) {
 	WiseClient* device = findClient (wisePacket->sender);
 	SensorInfo* sensor = NULL;
 	
-	while (wisePacket->data_information.data_size) {
-		data_ptr += SENSOR_INFO_DATA_SIZE;
-		data 	 = *data_ptr;
-		data_ptr += sensor_info->sensor_data_len;
-		wisePacket->data_information.data_size = wisePacket->data_information.data_size - 
-									(SENSOR_INFO_DATA_SIZE + sensor_info->sensor_data_len);
+	switch (wisePacket->sender_information.sender_type) {
+		case SENDER_SENSOR_LOCAL_HUB: {
+			rfcomm_sensor_info* sensor_info = (rfcomm_sensor_info *)data_ptr;
+			while (wisePacket->data_information.data_size) {
+				data_ptr += SENSOR_INFO_DATA_SIZE;
+				data 	 = *data_ptr;
+				data_ptr += sensor_info->sensor_data_len;
+				wisePacket->data_information.data_size = wisePacket->data_information.data_size - 
+											(SENSOR_INFO_DATA_SIZE + sensor_info->sensor_data_len);
 
-		sensor_address = 0;
-		memcpy (&sensor_address, wisePacket->sender, 5);
-		sensor_address = (sensor_address << 8) | sensor_info->sensor_address;
-		
-		sensor = device->findSensor (sensor_address);
-		if (sensor != NULL) {
-			sensor->info.flags.isAvalibale = YES;
-			sensor->info.lastUpdate = CommonMethods::getTimestampMillis();
-			sensor->info.backup.sensorHWValue = sensor->info.value.sensorHWValue;
-			sensor->info.backup.sensorUIValue = sensor->info.value.sensorUIValue;
-			sensor->info.value.sensorHWValue = data;
-			
-			if (sensor->info.backup.sensorHWValue != sensor->info.value.sensorHWValue) {
-				printf ("(WiseClientHandler) [updateSensorInfo] CHANGES (%d) -> (%d)\n", sensor->info.backup.sensorHWValue,
-																						sensor->info.value.sensorHWValue);
+				sensor_address = 0;
+				memcpy (&sensor_address, wisePacket->sender, 5);
+				sensor_address = (sensor_address << 8) | sensor_info->sensor_address;
+				
+				sensor = device->findSensor (sensor_address);
+				if (sensor != NULL) {
+					sensor->info.flags.isAvalibale 		= YES;
+					sensor->info.lastUpdate 			= CommonMethods::getTimestampMillis();
+					sensor->info.backup.sensorHWValue 	= sensor->info.value.sensorHWValue;
+					sensor->info.backup.sensorUIValue 	= sensor->info.value.sensorUIValue;
+					sensor->info.value.sensorHWValue 	= data;
+					
+					if (sensor->info.backup.sensorHWValue != sensor->info.value.sensorHWValue) {
+						printf ("(WiseClientHandler) [updateSensorInfo] CHANGES (%d) -> (%d)\n", sensor->info.backup.sensorHWValue,
+																								sensor->info.value.sensorHWValue);
+						// TODO - Connect to event management system
+						// TODO - Update local database. (MySql)
+					}
+					
+					sensor = NULL;
+				} else {
+					printf ("(WiseClientHandler) [updateSensorInfo] ERROR - CAN'T FIND SENSOR (SENDER_SENSOR_LOCAL_HUB)\n");
+				}
+				
+				sensor_info = (rfcomm_sensor_info *)data_ptr;
 			}
-			
-			sensor = NULL;
-		} else {
-			printf ("(WiseClientHandler) [updateSensorInfo] ERROR - CAN'T FIND SENSOR\n");
 		}
+		break;
+		case SENDER_SENSOR_WIRELESS_HUB: {
+			rfcomm_individual_sensor_info * sensor_info = (rfcomm_individual_sensor_info *)data_ptr;
+			while (wisePacket->data_information.data_size) {
+				data_ptr += sizeof(rfcomm_individual_sensor_info);
+				data 	 = *data_ptr;
+				data_ptr += sensor_info->sensor_data_len;
+				wisePacket->data_information.data_size = wisePacket->data_information.data_size - 
+											sensor_info->sensor_data_len;
 		
-		sensor_info = (rfcomm_sensor_info *)data_ptr;
+				sensor_address = 0;
+				memcpy (&sensor_address, sensor_info->sensor_address, 6);
+				
+				sensor = device->findSensor (sensor_address);
+				if (sensor != NULL) {
+					sensor->info.flags.isAvalibale 		= YES;
+					sensor->info.lastUpdate 			= CommonMethods::getTimestampMillis();
+					sensor->info.backup.sensorHWValue 	= sensor->info.value.sensorHWValue;
+					sensor->info.backup.sensorUIValue 	= sensor->info.value.sensorUIValue;
+					sensor->info.value.sensorHWValue 	= data;
+					
+					if (sensor->info.backup.sensorHWValue != sensor->info.value.sensorHWValue) {
+						printf ("(WiseClientHandler) [updateSensorInfo] CHANGES (%d) -> (%d)\n", sensor->info.backup.sensorHWValue,
+																								sensor->info.value.sensorHWValue);
+						// TODO - Connect to event management system
+						// TODO - Update local database. (MySql)
+					}
+					
+					sensor = NULL;
+				} else {
+					printf ("(WiseClientHandler) [updateSensorInfo] ERROR - CAN'T FIND SENSOR (SENDER_SENSOR_WIRELESS_HUB)\n");
+				}
+			}
+		}
+		break;
 	}
+	
+	
 	
 	// printClentInfo ();
 }
@@ -181,18 +224,23 @@ WiseClientHandler::updateSensorUIValue (long long sensorAddr, uint16_t uiValue) 
 wise_status_t
 WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
     WiseClient* device = findClient (wisePacket->sender);
-    
+	
     if (wisePacket->data_information.data_type == DEVICE_PROT_DATA_TYPE) {
         rfcomm_device_prot* prot = (rfcomm_device_prot*)wisePacket->data_frame.unframeneted.data;
+		printf ("DEBUG\n");
         
         if (prot->device_cmd == DEVICE_PROT_CONNECT_REQ) {
+			printf ("DEBUG_0\n");
             if (device != NULL) {
                 /* Update timestamp */
                 device->timestamp = (uint64_t)time(NULL);
+				printf ("DEBUG_1\n");
                 
                 if (device->status == DISCOVERY) {
+					printf ("DEBUG_2\n");
                     return DISCOVERY;
                 } else if (device->status == CONNECTED) {
+					printf ("DEBUG_3\n");
 					WiseDBMng::apiSetSensorAvailability (wisePacket, true); // Set HUB as available
                     return CONNECTED;
                 }

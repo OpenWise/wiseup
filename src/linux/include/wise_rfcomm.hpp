@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-#define DATA_PACKAGE_SIZE   	    16
+#define DATA_PACKAGE_SIZE   	    15
 #define RFCOMM_VERSION 			    0x1
 
 /* Data type */
@@ -36,6 +36,10 @@
 #define RELAY_SENSOR_TYPE		    0x4
 #define RGB_LED_SENSOR_TYPE		    0x5
 
+/* Sender types */
+#define SENDER_SENSOR_LOCAL_HUB    	0x1
+#define SENDER_SENSOR_WIRELESS_HUB  0x2
+
 struct device_version {
 	uint8_t major	:4;
 	uint8_t minor	:4;
@@ -43,6 +47,12 @@ struct device_version {
 
 struct rfcomm_sensor_info {
 	uint8_t 	sensor_address;
+	uint8_t		sensor_type;
+	uint8_t		sensor_data_len;
+};
+
+struct rfcomm_individual_sensor_info {
+	uint8_t 	sensor_address[6];
 	uint8_t		sensor_type;
 	uint8_t		sensor_data_len;
 };
@@ -68,8 +78,13 @@ struct rfcomm_data {
 	};
 	
 	struct data_info {
-		uint8_t data_type	: 3;
-		uint8_t data_size	: 5;
+		uint8_t data_type		: 3;
+		uint8_t data_size		: 5;
+	};
+	
+	struct sender_info {
+		uint8_t sender_type	: 5;
+		uint8_t reserved		: 3;
 	};
 	
 	union data_package {
@@ -88,6 +103,7 @@ struct rfcomm_data {
 	uint8_t			sender[5];				// 5  byte
     uint8_t			target[5];				// 5  byte
 	data_info		data_information;		// 1  byte
-	data_package 	data_frame;				// 16 byte
+	sender_info		sender_information;		// 1 byte
+	data_package 	data_frame;				// 15 byte
 	uint16_t		packet_id;				// 2  byte
 };

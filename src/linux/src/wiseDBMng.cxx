@@ -67,7 +67,6 @@ dbMngWorker (void * args) {
 	db_msg_t 			msg;
 	WiseIPC 			*ipcDB  		= NULL;
 	rfcomm_data 		*wisePacket 	= NULL;
-	rfcomm_sensor_info 	*sensor_info	= NULL;
 	
 	WiseDBMng* obj 	= (WiseDBMng*)args;
 	
@@ -87,33 +86,73 @@ dbMngWorker (void * args) {
 		
 		switch (msg.spId) {
 			case SP_UPDATE_SENSOR_INFO: {
-				printf ("(WiseDBMng) [dbMngWorker] SP_UPDATE_SENSOR_INFO\n");
 				uint8_t* data_ptr = wisePacket->data_frame.unframeneted.data;
-				sensor_info = (rfcomm_sensor_info *)data_ptr;
-
-				/* Parse the message */
-				long long sensor_address = 0;
-				long long hub_address 	 = 0;
-				int data 				 = 0;
 				
-				while (wisePacket->data_information.data_size) {
-					data_ptr += SENSOR_INFO_DATA_SIZE;
-					data 	 = *data_ptr;
-					data_ptr += sensor_info->sensor_data_len;
-					wisePacket->data_information.data_size = wisePacket->data_information.data_size - 
-												(SENSOR_INFO_DATA_SIZE + sensor_info->sensor_data_len);
-			
-					sensor_address = 0;
-					memcpy (&sensor_address, wisePacket->sender, 5);
-					sensor_address = (sensor_address << 8) | sensor_info->sensor_address;
-					memcpy (&hub_address, wisePacket->sender, 5);
+				printf ("(WiseDBMng) [dbMngWorker] SP_UPDATE_SENSOR_INFO (%d)\n", wisePacket->sender_information.sender_type);
+				switch (wisePacket->sender_information.sender_type) {
+					case SENDER_SENSOR_LOCAL_HUB: {
+						printf ("(WiseDBMng) [dbMngWorker] SP_UPDATE_SENSOR_INFO - SENDER_SENSOR_LOCAL_HUB\n");
+						rfcomm_sensor_info * sensor_info = (rfcomm_sensor_info *)data_ptr;
+
+						/* Parse the message */
+						long long sensor_address = 0;
+						long long hub_address 	 = 0;
+						int data 				 = 0;
+						
+						while (wisePacket->data_information.data_size) {
+							data_ptr += sizeof(rfcomm_sensor_info);
+							data 	 = *data_ptr;
+							data_ptr += sensor_info->sensor_data_len;
+							wisePacket->data_information.data_size = wisePacket->data_information.data_size - 
+														(sizeof(rfcomm_sensor_info) + sensor_info->sensor_data_len);
 					
-					// Calling DAL methods
-					obj->m_Dal->updateSensorInfo (sensor_address, hub_address, sensor_info->sensor_address, 
-														sensor_info->sensor_type, true, data);
-														
-					sensor_info = (rfcomm_sensor_info *)data_ptr;
+							sensor_address = 0;
+							memcpy (&sensor_address, wisePacket->sender, 5);
+							sensor_address = (sensor_address << 8) | sensor_info->sensor_address;
+							memcpy (&hub_address, wisePacket->sender, 5);
+							
+							// Calling DAL methods
+							obj->m_Dal->updateSensorInfo (sensor_address, hub_address, sensor_info->sensor_address, 
+																sensor_info->sensor_type, true, data);
+																
+							sensor_info = (rfcomm_sensor_info *)data_ptr;
+						}
+					}
+					break;
+					case SENDER_SENSOR_WIRELESS_HUB: {
+						printf ("(WiseDBMng) [dbMngWorker] SP_UPDATE_SENSOR_INFO - SENDER_SENSOR_WIRELESS_HUB\n");
+						rfcomm_individual_sensor_info * sensor_info = (rfcomm_individual_sensor_info *)data_ptr;
+
+						/* Parse the message */
+						long long sensor_address = 0;
+						long long hub_address 	 = 0;
+						int data 				 = 0;
+						
+						while (wisePacket->data_information.data_size) {
+							data_ptr += sizeof(rfcomm_individual_sensor_info);
+							data 	 = *data_ptr;
+							data_ptr += sensor_info->sensor_data_len;
+							wisePacket->data_information.data_size = wisePacket->data_information.data_size - 
+														sensor_info->sensor_data_len;
+					
+							sensor_address = 0;
+							memcpy (&sensor_address, sensor_info->sensor_address, 6);
+							memcpy (&hub_address, wisePacket->sender, 5);
+							
+							printf ("DEBUG -------------------------------- (%lld) (%lld) (%d)\n", sensor_address, hub_address, data);
+							
+							// Calling DAL methods
+							obj->m_Dal->updateSensorInfo (sensor_address, hub_address, 0, 
+															sensor_info->sensor_type, true, data);
+																
+							sensor_info = (rfcomm_individual_sensor_info *)data_ptr;
+						}
+					}
+					break;
 				}
+				
+				
+				
 			}
 			break;
 			case SP_SET_SENSOR_AVAILABILITY: {
