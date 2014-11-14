@@ -78,13 +78,10 @@ struct rfcomm_data {
 	};
 	
 	struct data_info {
-		uint8_t data_type		: 3;
-		uint8_t data_size		: 5;
-	};
-	
-	struct sender_info {
-		uint8_t sender_type		: 5;
-		uint8_t reserved		: 3;
+		uint16_t data_type		: 3;
+		uint16_t data_size		: 5;
+		uint16_t sender_type	: 5;
+		uint16_t reserved		: 3;
 	};
 	
 	union data_package {
@@ -103,7 +100,8 @@ struct rfcomm_data {
 	uint8_t			sender[5];          // 5  byte
 	uint8_t			target[5];			// 5  byte
 	data_info		data_information;	// 1  byte
-	sender_info		sender_information; // 1 byte
 	data_package 	data_frame;			// 15 byte
 	uint16_t		packet_id;			// 2  byte
 };
+
+
