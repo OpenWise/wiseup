@@ -59,6 +59,13 @@ spi_init(int bus, int slave)
 result_t
 spi_mode(spi_context dev, unsigned short mode)
 {
+	uint8_t spi_mode = (uint8_t) mode;
+	
+	if (ioctl (dev->devfd, SPI_IOC_WR_MODE, &spi_mode) < 0) {
+		fprintf(stderr, "Failed to set spi mode\n");
+        return ERROR_INVALID_RESOURCE;
+	}
+	
     dev->mode = mode;
     return SUCCESS;
 }
@@ -73,14 +80,16 @@ spi_frequency(spi_context dev, int hz)
 result_t
 spi_lsbmode(spi_context dev, int lsb)
 {
-    uint8_t lsb_mode = 0;
-    if (lsb == 1) {
-        lsb_mode = 1;
-    }
+    uint8_t lsb_mode = (uint8_t) lsb;
     if (ioctl (dev->devfd, SPI_IOC_WR_LSB_FIRST, &lsb_mode) < 0) {
         fprintf(stderr, "Failed to set bit order\n");
         return ERROR_INVALID_RESOURCE;
     }
+	if (ioctl (dev->devfd, SPI_IOC_RD_LSB_FIRST, &lsb_mode) < 0) {
+        fprintf(stderr, "Failed to set bit order\n");
+        return ERROR_INVALID_RESOURCE;
+    }
+	
     dev->lsb = lsb;
     return SUCCESS;
 }

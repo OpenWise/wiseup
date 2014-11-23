@@ -139,8 +139,6 @@ dbMngWorker (void * args) {
 							memcpy (&sensor_address, sensor_info->sensor_address, 6);
 							memcpy (&hub_address, wisePacket->sender, 5);
 							
-							printf ("DEBUG -------------------------------- (%lld) (%lld) (%d)\n", sensor_address, hub_address, data);
-							
 							// Calling DAL methods
 							obj->m_Dal->updateSensorInfo (sensor_address, hub_address, 0, 
 															sensor_info->sensor_type, true, data);
