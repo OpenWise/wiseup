@@ -322,10 +322,14 @@ class NRF24L01 {
 		void * dataContext;
         
         void nrf_print_details ();
+		
         void nrf_print_byte (char s[], uint8_t reg, uint8_t len);
         
         void setBeaconingMode ();
+		
         void sendBeaconingMsg (uint8_t * msg);
+		
+		spi_context& getSPIHandler ();
 
         /**
          * Return name of the component
@@ -372,6 +376,8 @@ class NRF24L01 {
 
         gpio_context    m_csnPinCtx;
         gpio_context    m_cePinCtx;
+        uint8_t         m_cs;
+        uint8_t         m_ce;
 
         std::string     m_name;
 };

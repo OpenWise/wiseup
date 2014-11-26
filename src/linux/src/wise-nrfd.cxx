@@ -12,12 +12,13 @@
 #include <sys/time.h>
 #include <string>
 #include "json/json.h"
- #include <stdlib.h>     /* srand, rand */
+#include <stdlib.h>     /* srand, rand */
 
 /* includes for deamonization */
 #include <cstdlib>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 /* includes for wiseup */
 #include "common.h"
@@ -31,6 +32,7 @@
 #include "commonMethods.hpp"
 
 #include "wiseDBMng.h"
+#include "screen.h"
 
 #include <errno.h>
 
@@ -46,6 +48,8 @@ comm::NRF24L01      *sensor 	    = NULL;
 comm::WiseRFComm    *net            = NULL;
 WiseClientHandler   *clientHandler  = NULL;
 WiseCommandHandler  *cmdHandler     = NULL;
+Screen*             lcd             = NULL;
+screen_context      lcdCtx;
 
 /* Message queue for outgoing packets */
 vector<nrf24l01_msg_t> messagePull;
@@ -75,6 +79,8 @@ dataHandling (rfcomm_data * packet) {
 		
 		printf ("(wise-nrfd) [dataHandling] Updating sensor data \n");
     }
+
+    lcdCtx.rxPacketCount++;
 }
 
 /*
@@ -227,6 +233,8 @@ outgoingNrf24l01 () {
         rfcomm_data *wisePacket = (rfcomm_data *)msg.packet;
         msg.timestamp = CommonMethods::getTimestampMillis();
 
+        lcd->powerDown ();
+
         /* initialize random seed: */
         srand (time(NULL));
         wisePacket->packet_id = rand() % 65500 + 1;;
@@ -236,6 +244,10 @@ outgoingNrf24l01 () {
 
         if (wisePacket->control_flags.is_ack) {
         }
+
+        lcd->powerUp ();
+
+        lcdCtx.txPacketCount++;
 
 		printf ("(wise-nrfd) [outgoingNrf24l01] Sending to %d %d %d %d %d\n", wisePacket->target[0], wisePacket->target[1], wisePacket->target[2], 
 												wisePacket->target[3], wisePacket->target[4]);
@@ -287,6 +299,34 @@ deamonize () {
     printf("\nChange the current working directory... [SUCCESS]\n");
 }
 
+int GetCPULoad() {
+    int FileHandler;
+    char FileBuffer[1024];
+    float load;
+
+    FileHandler = open("/proc/loadavg", O_RDONLY);
+    if(FileHandler < 0) {
+        return -1; }
+    read(FileHandler, FileBuffer, sizeof(FileBuffer) - 1);
+    sscanf(FileBuffer, "%f", &load);
+    close(FileHandler);
+    return (int)(load * 100);
+}
+
+int GetCPUTemp() {
+    int FileHandler;
+    char FileBuffer[1024];
+    int load;
+
+    FileHandler = open("/sys/class/thermal/thermal_zone0/temp", O_RDONLY);
+    if(FileHandler < 0) {
+        return -1; }
+    read(FileHandler, FileBuffer, sizeof(FileBuffer) - 1);
+    sscanf(FileBuffer, "%d", &load);
+    close(FileHandler);
+    return (load / 1000);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -313,7 +353,7 @@ main (int argc, char **argv)
 
 	printf("Initiating nrf24l01...\n");
     /* Init nRF24l01 communication */
-    sensor = new comm::NRF24L01 (17, 22);
+    sensor = new comm::NRF24L01 (17, 4);
     net = new comm::WiseRFComm (sensor, netLayerDataArrivedHandler, netLayerBroadcastArrivedHandler);
     net->setSender (local_address);
 
@@ -329,13 +369,18 @@ main (int argc, char **argv)
 
     WiseTimer* timerNTM = new WiseTimer();
     WiseTimer* timerRUD = new WiseTimer();
+    WiseTimer* timerLCD = new WiseTimer();
     clientHandler   = new WiseClientHandler  ();
     cmdHandler      = new WiseCommandHandler ();
-    timerNTM->setTimer (1); //set up a delay timer
-    timerRUD->setTimer (60);
 	
 	WiseDBDAL* 			wiseDAL 		= new WiseDBDAL ();
 	WiseDBMng* 			wiseDB  		= new WiseDBMng (wiseDAL);
+	
+    lcd = new Screen (sensor->getSPIHandler(), 25, 23, 24);
+	
+	timerNTM->setTimer (1); //set up a delay timer
+    timerRUD->setTimer (60);
+    timerLCD->setTimer (10);
 	
 	if (!wiseDB->start()) { exit (-1); }
 	
@@ -346,9 +391,37 @@ main (int argc, char **argv)
 	clientHandler->clentDataBaseInit();
 	// clientHandler->printClentInfo();
 
+	lcd->clearscr ();
+	
+	char Str[16];
     /* The Big Loop */
     while (!running) {
         net->listenForIncoming ();
+
+        if (timerLCD->checkTimer (10) == 1) {
+            lcd->setTextSize (1);
+            lcd->setTextColor(BLACK, WHITE);
+
+            snprintf(Str, sizeof(Str), "TX: %d", lcdCtx.txPacketCount);
+            lcd->setCursor(1, 1);
+            lcd->print(Str);
+
+            snprintf(Str, sizeof(Str), "RX: %d", lcdCtx.rxPacketCount);
+            lcd->setCursor(1, 10);
+            lcd->print(Str);
+
+            lcdCtx.cpuTemperature = GetCPUTemp ();
+            snprintf(Str, sizeof(Str), "CPU (C): %dc", lcdCtx.cpuTemperature);
+            lcd->setCursor(1, 20);
+            lcd->print(Str);
+
+            lcdCtx.cpuUsage = GetCPULoad ();
+            snprintf(Str, sizeof(Str), "CPU (%): %d%", lcdCtx.cpuUsage);
+            lcd->setCursor(1, 30);
+            lcd->print(Str);
+
+            lcd->refresh ();
+        }
 
         if (timerNTM->checkTimer (1) == 1) {
             outgoingNrf24l01 ();

@@ -26,17 +26,17 @@
 #define PCD8544_DISPLAYBLANK 		0x0
 #define PCD8544_DISPLAYNORMAL 		0x4
 #define PCD8544_DISPLAYALLON 		0x1
-#define PCD8544_DISPLAYINVERTED 	0x5
+#define PCD8544_DISPLAYINVERTED 	    0x5
 
 // H = 0
-#define PCD8544_FUNCTIONSET 		0x20
+#define PCD8544_FUNCTIONSET 		    0x20
 #define PCD8544_DISPLAYCONTROL 		0x08
 #define PCD8544_SETYADDR 			0x40
 #define PCD8544_SETXADDR 			0x80
 
 // H = 1
-#define PCD8544_SETTEMP 			0x04
-#define PCD8544_SETBIAS 			0x10
+#define PCD8544_SETTEMP 			    0x04
+#define PCD8544_SETBIAS 			    0x10
 #define PCD8544_SETVOP 				0x80
 
 #define HIGH            			1
@@ -313,6 +313,9 @@ public:
 	void refresh ();
 	void clearscr ();
 	void drawFromBuffer (uint8_t * rawData);
+
+	void powerUp ();
+	void powerDown ();
 	
 private:
 	void cmd (uint8_t data);

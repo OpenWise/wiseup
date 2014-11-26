@@ -19,6 +19,13 @@ typedef struct {
 	pthread_mutex_t mutex;
 } sync_context_t;
 
+typedef struct {
+    uint32_t txPacketCount;
+    uint32_t rxPacketCount;
+    uint8_t  cpuTemperature;
+    uint8_t  cpuUsage;
+} screen_context;
+
 class CommonMethods {
 public:
     static uint64_t getTimestampMillis () {

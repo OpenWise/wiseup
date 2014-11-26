@@ -46,7 +46,9 @@ uint8_t pcd8544_buffer[LCDWIDTH * LCDHEIGHT / 8] = {
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 };
 
-PCD8544::PCD8544 (spi_context& spi,uint8_t cs, uint8_t dc, uint8_t rst) : GFX (LCDWIDTH / 8, LCDHEIGHT / 8, pcd8544_buffer, font) {
+PCD8544::PCD8544 (spi_context& spi, uint8_t cs, uint8_t dc, uint8_t rst) : GFX (LCDWIDTH, LCDHEIGHT, pcd8544_buffer, font) {
+	result_t error = SUCCESS;
+
 	m_spi = spi;
 	
 	m_csCtx = gpio_init (cs);
@@ -65,6 +67,21 @@ PCD8544::PCD8544 (spi_context& spi,uint8_t cs, uint8_t dc, uint8_t rst) : GFX (L
     if (m_rstCtx == NULL) {
         fprintf (stderr, "Are you sure that pin%d you requested is valid on your platform?", rst);
         exit (1);
+    }
+	
+	error = gpio_dir (m_csCtx, GPIO_OUT);
+    if (error != SUCCESS) {
+        fprintf (stderr, "Error #%d", error);
+    }
+	
+	error = gpio_dir (m_dcCtx, GPIO_OUT);
+    if (error != SUCCESS) {
+        fprintf (stderr, "Error #%d", error);
+    }
+	
+	error = gpio_dir (m_rstCtx, GPIO_OUT);
+    if (error != SUCCESS) {
+        fprintf (stderr, "Error #%d", error);
     }
 	
 	init ();
@@ -146,6 +163,14 @@ PCD8544::init () {
 	
 	setTextColor(WHITE, BLACK);
 	
+	powerUp ();
+
+	// Push out pcd8544_buffer to the Display (will show the AFI logo)
+	refresh();
+}
+
+void
+PCD8544::powerUp () {
 	// get into the EXTENDED mode!
 	cmd (PCD8544_FUNCTIONSET | PCD8544_EXTENDEDINSTRUCTION );
 
@@ -160,9 +185,11 @@ PCD8544::init () {
 
 	// Set display to Normal
 	cmd (PCD8544_DISPLAYCONTROL | PCD8544_DISPLAYNORMAL);
+}
 
-	// Push out pcd8544_buffer to the Display (will show the AFI logo)
-	refresh();
+void
+PCD8544::powerDown () {
+	cmd (PCD8544_POWERDOWN | PCD8544_FUNCTIONSET | PCD8544_EXTENDEDINSTRUCTION);
 }
 
 void
@@ -218,7 +245,7 @@ PCD8544::setAddrWindow (uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1) {
 void
 PCD8544::refresh () {
 	uint8_t col, maxCol;
-	
+
 	for (int i = 0; i < 6; i++) {
 		cmd (PCD8544_SETYADDR | i);
 		

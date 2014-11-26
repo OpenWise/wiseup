@@ -74,11 +74,11 @@ void
 WiseRFComm::sendPacket (uint8_t * target) {
 	rfcomm_data * packet = (rfcomm_data *)m_network->m_txBuffer;
 
-	init ();
+	m_network->configure ();
 	memcpy (packet->target, target, 5);
 	setTarget (target);
 	m_network->send ();
-	init ();
+	m_network->configure ();
 }
 
 void
@@ -125,6 +125,9 @@ WiseRFComm::init () {
 }
 
 NRF24L01::NRF24L01 (uint8_t cs, uint8_t ce) {
+    m_cs = cs;
+    m_ce = ce;
+
     init (cs, ce);
 }
 
@@ -211,18 +214,25 @@ NRF24L01::send (uint8_t * value) {
     } // Wait until last paket is send
 
     ceLow ();
+    
     txPowerUp (); // Set to transmitter mode , Power up
     txFlushBuffer ();
-    
+
     csOn ();
     spi_write (m_spi, W_TX_PAYLOAD); // Write cmd to write payload
     writeBytes (value, NULL, m_payload); // Write payload
     csOff ();
+
     ceHigh(); // Start transmission
     
-    while (dataSending ()) { }
+    while (dataSending ()) {  }
+	usleep (100000);
+    init (m_cs, m_ce);
 
-	usleep (10000);
+    /*ceLow ();
+    rxPowerUp ();
+    rxFlushBuffer ();
+    ceHigh();*/
 }
 
 void
@@ -559,6 +569,11 @@ NRF24L01::sendCommand (uint8_t cmd) {
     csOn ();
     spi_write (m_spi, cmd);
     csOff ();
+}
+
+spi_context&
+NRF24L01::getSPIHandler () {
+	return m_spi;
 }
 
 void

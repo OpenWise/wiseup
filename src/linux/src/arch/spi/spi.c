@@ -11,6 +11,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
+#include <pthread.h>
 
 #define SPI_MAX_LENGTH 4096
 #define MAX_SIZE 64
@@ -26,6 +27,7 @@ struct _spi {
     int lsb; /**< least significant bit mode */
     unsigned int bpw; /**< Bits per word */
     /*@}*/
+	pthread_mutex_t mutex;
 };
 
 spi_context
@@ -52,6 +54,8 @@ spi_init(int bus, int slave)
     dev->clock = 4000000;
     dev->lsb = 0;
     dev->mode = 0;
+	
+	//pthread_mutex_init (&dev->mutex, NULL);
 
     return dev;
 }
@@ -104,6 +108,7 @@ spi_bit_per_word(spi_context dev, unsigned int bits)
 uint8_t
 spi_write(spi_context dev, uint8_t data)
 {
+	//pthread_mutex_lock (&dev->mutex);
     struct spi_ioc_transfer msg;
     memset(&msg, 0, sizeof(msg));
 
@@ -118,14 +123,18 @@ spi_write(spi_context dev, uint8_t data)
     msg.len = length;
     if (ioctl(dev->devfd, SPI_IOC_MESSAGE(1), &msg) < 0) {
         fprintf(stderr, "Failed to perform dev transfer\n");
+		//pthread_mutex_unlock (&dev->mutex);
         return -1;
     }
+	
+	//pthread_mutex_unlock (&dev->mutex);
     return recv;
 }
 
 uint8_t*
 spi_write_buf(spi_context dev, uint8_t* data, int length)
 {
+	//pthread_mutex_lock (&dev->mutex);
     struct spi_ioc_transfer msg;
     memset(&msg, 0, sizeof(msg));
 
@@ -139,8 +148,12 @@ spi_write_buf(spi_context dev, uint8_t* data, int length)
     msg.len = length;
     if (ioctl(dev->devfd, SPI_IOC_MESSAGE(1), &msg) < 0) {
         fprintf(stderr, "Failed to perform dev transfer\n");
+		//pthread_mutex_unlock (&dev->mutex);
+		
         return NULL;
     }
+	
+	//pthread_mutex_unlock (&dev->mutex);
     return recv;
 }
 
@@ -148,5 +161,6 @@ result_t
 spi_stop(spi_context dev)
 {
     close(dev->devfd);
+	//pthread_mutex_destroy (&dev->mutex);
     return SUCCESS;
 }

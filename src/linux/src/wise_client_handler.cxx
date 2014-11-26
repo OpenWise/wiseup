@@ -227,20 +227,15 @@ WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
 	
     if (wisePacket->data_information.data_type == DEVICE_PROT_DATA_TYPE) {
         rfcomm_device_prot* prot = (rfcomm_device_prot*)wisePacket->data_frame.unframeneted.data;
-		printf ("DEBUG\n");
         
         if (prot->device_cmd == DEVICE_PROT_CONNECT_REQ) {
-			printf ("DEBUG_0\n");
             if (device != NULL) {
                 /* Update timestamp */
                 device->timestamp = (uint64_t)time(NULL);
-				printf ("DEBUG_1\n");
                 
                 if (device->status == DISCOVERY) {
-					printf ("DEBUG_2\n");
                     return DISCOVERY;
                 } else if (device->status == CONNECTED) {
-					printf ("DEBUG_3\n");
 					WiseDBMng::apiSetSensorAvailability (wisePacket, true); // Set HUB as available
                     return CONNECTED;
                 }

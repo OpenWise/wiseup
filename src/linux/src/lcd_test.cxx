@@ -56,14 +56,11 @@ void testdrawtriangle( void );
 void testdrawcircle( void );
 void testfillrect( void );
 
+bool running = true;
 PCD8544* lcd = NULL;
 
-int
-main (int argc, char **argv)
-{	
-	bool running = true;
-	lcd = new PCD8544 (8, 23, 24);
-	
+void
+test1 (void) {
 	lcd->clearscr ();
 	testdrawline ();
 	usleep (2000000);
@@ -103,6 +100,31 @@ main (int argc, char **argv)
 		lcd->clearscr ();
 		usleep (2000000);
     }
+}
+
+void
+test2 (void) {
+	usleep (2000000);
+	lcd->clearscr ();
+	lcd->setCursor(1, 1);
+    lcd->setTextSize (1);
+	lcd->setTextColor(BLACK, WHITE);
+    lcd->print("small");
+	lcd->refresh ();
+	usleep (2000000);
+
+	/* The Big Loop */
+    while (running) {
+    	usleep (10);
+    }
+}
+
+int
+main (int argc, char **argv) {	
+	lcd = new PCD8544 (8, 23, 24);
+	
+	test1 ();
+	// test2 ();
 	
 	delete lcd;
 }
