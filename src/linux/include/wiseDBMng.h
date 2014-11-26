@@ -18,16 +18,25 @@
 
 using namespace std;
 
-#define SP_UPDATE_SENSOR_INFO 				1
+#define SP_UPDATE_SENSOR_INFO_RAW_DATA 		1
 #define SP_SET_SENSOR_AVAILABILITY			2
 #define SP_SET_ALL_SENSOR_NOT_CONNECTED		3
+#define SP_UPDATE_SENSOR_INFO_DATA 			4
 
 typedef struct {
 	uint8_t		spId;
-	uint8_t		args[16];
+	uint8_t		args[32];
     rfcomm_data packet;
     uint64_t    timestamp;
 } db_msg_t;
+
+typedef struct {
+	long long address;
+	uint8_t id;
+	long long hubAddress;
+	uint8_t type;
+	uint16_t value;
+} db_sensor_info_t;
 
 class WiseDBDAL {
 public:
@@ -48,7 +57,8 @@ public:
 	WiseDBMng (WiseDBDAL* db);
 	~WiseDBMng ();
 	
-	static void apiUpdateSensorInfo (rfcomm_data * data);
+	static void apiUpdateSensorsInfo (rfcomm_data * data);
+	static void apiUpdateSensorInfo (long long address, uint8_t id, long long hubAddress, uint8_t type, uint16_t value);
 	static void apiSetSensorAvailability (rfcomm_data * data, bool availability);
 	static void apiSetAllSensorNotConnected ();
 	

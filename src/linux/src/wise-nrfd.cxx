@@ -74,7 +74,6 @@ dataHandling (rfcomm_data * packet) {
 	} else {
         /* 2.1. Execute the requested command*/
         cmdHandler->commandHandler (packet);
-		WiseDBMng::apiUpdateSensorInfo (packet);
 		clientHandler->updateSensorInfo (packet);
 		
 		printf ("(wise-nrfd) [dataHandling] Updating sensor data \n");
@@ -190,7 +189,7 @@ phpCommandListener (void *) {
 void *
 outgoingMessageListener (void *) {
     /* UNIX domain socket listener for nrf24l01 outgoing packets */
-    WiseIPC         *ipcNrfOut = NULL;
+    WiseIPC *ipcNrfOut = NULL;
     try {
         ipcNrfOut = new WiseIPC ("/tmp/wiseup/nrf_outgoing_queue");
         ipcNrfOut->setServer ();
@@ -224,35 +223,47 @@ outgoingMessageListener (void *) {
  * Consumer */
 void
 outgoingNrf24l01 () {
+    // Monitor the NRF request queue
     if (messagePull.size() != 0) {
+        // Get the request from the top of the queue
         pthread_mutex_lock (&msgPullSyncContext.mutex);
         nrf24l01_msg_t msg = messagePull.back();
         messagePull.pop_back();
         pthread_mutex_unlock (&msgPullSyncContext.mutex);
 
+        // Add timestamp to the message
         rfcomm_data *wisePacket = (rfcomm_data *)msg.packet;
         msg.timestamp = CommonMethods::getTimestampMillis();
 
+        // Power down the screen (wierd issue with NRF CE pin)
         lcd->powerDown ();
 
-        /* initialize random seed: */
+        // Add random id to the packet
         srand (time(NULL));
         wisePacket->packet_id = rand() % 65500 + 1;;
 
+        // Send the packet
         memcpy (net->ptrTX, msg.packet, MAX_BUFFER);
         net->sendPacket (wisePacket->target);
 
+        // Handle the ACK request
         if (wisePacket->control_flags.is_ack) {
         }
 
+        // Power up the screen
         lcd->powerUp ();
 
+        // Increase TX packet count
         lcdCtx.txPacketCount++;
 
-		printf ("(wise-nrfd) [outgoingNrf24l01] Sending to %d %d %d %d %d\n", wisePacket->target[0], wisePacket->target[1], wisePacket->target[2], 
-												wisePacket->target[3], wisePacket->target[4]);
-		printf ("(wise-nrfd) [outgoingNrf24l01] From to %d %d %d %d %d\n", wisePacket->sender[0], wisePacket->sender[1], wisePacket->sender[2], 
-												wisePacket->sender[3], wisePacket->sender[4]);
+        // Print to the command line
+		printf ("(wise-nrfd) [outgoingNrf24l01] Sending to [%d %d %d %d %d] from [%d %d %d %d %d]\n", 
+                                                wisePacket->target[0], wisePacket->target[1], 
+                                                wisePacket->target[2], wisePacket->target[3], 
+                                                wisePacket->target[4], 
+                                                wisePacket->sender[0], wisePacket->sender[1], 
+                                                wisePacket->sender[2], wisePacket->sender[3], 
+                                                wisePacket->sender[4]);
     }
 }
 
@@ -299,7 +310,8 @@ deamonize () {
     printf("\nChange the current working directory... [SUCCESS]\n");
 }
 
-int GetCPULoad() {
+int
+getCPULoad() {
     int FileHandler;
     char FileBuffer[1024];
     float load;
@@ -313,7 +325,8 @@ int GetCPULoad() {
     return (int)(load * 100);
 }
 
-int GetCPUTemp() {
+int
+getCPUTemp() {
     int FileHandler;
     char FileBuffer[1024];
     int load;
@@ -378,7 +391,7 @@ main (int argc, char **argv)
 	
     lcd = new Screen (sensor->getSPIHandler(), 25, 23, 24);
 	
-	timerNTM->setTimer (1); //set up a delay timer
+	timerNTM->setTimer (1);
     timerRUD->setTimer (60);
     timerLCD->setTimer (10);
 	
@@ -389,7 +402,6 @@ main (int argc, char **argv)
 	
 	usleep (200000);
 	clientHandler->clentDataBaseInit();
-	// clientHandler->printClentInfo();
 
 	lcd->clearscr ();
 	
@@ -410,17 +422,22 @@ main (int argc, char **argv)
             lcd->setCursor(1, 10);
             lcd->print(Str);
 
-            lcdCtx.cpuTemperature = GetCPUTemp ();
+            lcdCtx.cpuTemperature = getCPUTemp ();
             snprintf(Str, sizeof(Str), "CPU (C): %dc", lcdCtx.cpuTemperature);
             lcd->setCursor(1, 20);
             lcd->print(Str);
 
-            lcdCtx.cpuUsage = GetCPULoad ();
+            lcdCtx.cpuUsage = getCPULoad ();
             snprintf(Str, sizeof(Str), "CPU (%): %d%", lcdCtx.cpuUsage);
             lcd->setCursor(1, 30);
             lcd->print(Str);
 
             lcd->refresh ();
+
+            printf ("(Screen) TX: %d, RX: %d, CPU (C): %dc, CPU (%): %d%\n",    lcdCtx.txPacketCount,
+                                                                                lcdCtx.rxPacketCount,
+                                                                                lcdCtx.cpuTemperature,
+                                                                                lcdCtx.cpuUsage);
         }
 
         if (timerNTM->checkTimer (1) == 1) {
@@ -434,10 +451,11 @@ main (int argc, char **argv)
 	
 	wiseDB->stop();
 	delete wiseDB;
-
+    delete lcd;
 	delete sensor;
     delete timerNTM;
     delete timerRUD;
+    delete timerLCD;
     
     pthread_mutex_destroy (&msgPullSyncContext.mutex);
     pthread_cond_destroy  (&msgPullSyncContext.cond);
@@ -446,17 +464,3 @@ main (int argc, char **argv)
     
     exit(EXIT_SUCCESS);
 }
-
-/*
-WiseIPC *ipcNrfOut = new WiseIPC ("/opt/wiseup/nrf_outgoing_queue");
-if (ipcNrfOut->setClient () == SUCCESS) {
-    printBuffer (" --> TX ", m_net->ptrTX, 32);
-        
-    ipcNrfOut->setBuffer((unsigned char *)buffer);
-    if (ipcNrfOut->sendMsg(32) == false) { }
-    } else {
-        sprintf ((char *) wise_stdout_buffer, "(wise-nrfd) [ERROR] - No available outgoing_pipe");
-        stdout_msg ();
-    }
-delete ipcNrfOut;
-*/

@@ -126,6 +126,7 @@ WiseClientHandler::updateSensorInfo (rfcomm_data* wisePacket) {
 				sensor_address = 0;
 				memcpy (&sensor_address, wisePacket->sender, 5);
 				sensor_address = (sensor_address << 8) | sensor_info->sensor_address;
+				memcpy (&hub_address, wisePacket->sender, 5);
 				
 				sensor = device->findSensor (sensor_address);
 				if (sensor != NULL) {
@@ -140,6 +141,8 @@ WiseClientHandler::updateSensorInfo (rfcomm_data* wisePacket) {
 																								sensor->info.value.sensorHWValue);
 						// TODO - Connect to event management system
 						// TODO - Update local database. (MySql)
+						WiseDBMng::apiUpdateSensorInfo (sensor_address, sensor_info->sensor_address, 
+										hub_address, sensor_info->sensor_type, data);
 					}
 					
 					sensor = NULL;
@@ -162,6 +165,7 @@ WiseClientHandler::updateSensorInfo (rfcomm_data* wisePacket) {
 		
 				sensor_address = 0;
 				memcpy (&sensor_address, sensor_info->sensor_address, 6);
+				memcpy (&hub_address, wisePacket->sender, 5);
 				
 				sensor = device->findSensor (sensor_address);
 				if (sensor != NULL) {
@@ -176,6 +180,8 @@ WiseClientHandler::updateSensorInfo (rfcomm_data* wisePacket) {
 																								sensor->info.value.sensorHWValue);
 						// TODO - Connect to event management system
 						// TODO - Update local database. (MySql)
+						WiseDBMng::apiUpdateSensorInfo (sensor_address, 0, 
+										hub_address, sensor_info->sensor_type, data);
 					}
 					
 					sensor = NULL;

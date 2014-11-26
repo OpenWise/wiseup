@@ -85,7 +85,7 @@ dbMngWorker (void * args) {
         read (client, ipcDB->buff, sizeof(db_msg_t));
 		
 		switch (msg.spId) {
-			case SP_UPDATE_SENSOR_INFO: {
+			case SP_UPDATE_SENSOR_INFO_RAW_DATA: {
 				uint8_t* data_ptr = wisePacket->data_frame.unframeneted.data;
 				
 				printf ("(WiseDBMng) [dbMngWorker] SP_UPDATE_SENSOR_INFO (%d)\n", wisePacket->sender_information.sender_type);
@@ -148,9 +148,6 @@ dbMngWorker (void * args) {
 					}
 					break;
 				}
-				
-				
-				
 			}
 			break;
 			case SP_SET_SENSOR_AVAILABILITY: {
@@ -166,6 +163,14 @@ dbMngWorker (void * args) {
 				printf ("(WiseDBMng) [dbMngWorker] SP_SET_ALL_SENSOR_NOT_CONNECTED\n");
 				// Calling DAL methods
 				obj->m_Dal->setAllSensorNotConnected ();
+			}
+			break;
+			case SP_UPDATE_SENSOR_INFO_DATA: {
+				printf ("(WiseDBMng) [dbMngWorker] SP_UPDATE_SENSOR_INFO_DATA\n");
+				// Calling DAL methods
+				db_sensor_info_t* sensor = (db_sensor_info_t* )msg.args;
+				obj->m_Dal->updateSensorInfo (sensor->address, sensor->hubAddress, sensor->id, 
+																sensor->type, true, sensor->value);
 			}
 			break;
 		}
@@ -201,13 +206,36 @@ WiseDBMng::stop () {
 }
 
 void
-WiseDBMng::apiUpdateSensorInfo (rfcomm_data * data) {
+WiseDBMng::apiUpdateSensorsInfo (rfcomm_data * data) {
 	db_msg_t 	msg;
 	WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
 	if (ipcDB->setClient () == SUCCESS) {
 		memcpy(&msg.packet, (uint8_t *)data, 32);
 		ipcDB->setBuffer((unsigned char *)&msg);
-		msg.spId = SP_UPDATE_SENSOR_INFO;
+		msg.spId = SP_UPDATE_SENSOR_INFO_RAW_DATA;
+		if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
+	} else {
+		printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
+	}
+	delete ipcDB;
+}
+
+void
+WiseDBMng::apiUpdateSensorInfo (long long address, uint8_t id, long long hubAddress, uint8_t type, uint16_t value) {
+	db_msg_t 			msg;
+	db_sensor_info_t* 	sensor;
+	WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
+	if (ipcDB->setClient () == SUCCESS) {
+		ipcDB->setBuffer((unsigned char *)&msg);
+		msg.spId = SP_UPDATE_SENSOR_INFO_DATA;
+
+		sensor = (db_sensor_info_t* )msg.args;
+		sensor->address = address;
+		sensor->id = id;
+		sensor->hubAddress = hubAddress;
+		sensor->type = type;
+		sensor->value = value;
+
 		if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
 	} else {
 		printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
