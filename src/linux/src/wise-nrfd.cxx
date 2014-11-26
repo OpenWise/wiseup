@@ -391,9 +391,9 @@ main (int argc, char **argv)
 	
     lcd = new Screen (sensor->getSPIHandler(), 25, 23, 24);
 	
-	timerNTM->setTimer (1);
-    timerRUD->setTimer (60);
-    timerLCD->setTimer (10);
+	timerNTM->setTimer (1000000);
+    timerRUD->setTimer (60000000);
+    timerLCD->setTimer (10000000);
 	
 	if (!wiseDB->start()) { exit (-1); }
 	
@@ -410,7 +410,7 @@ main (int argc, char **argv)
     while (!running) {
         net->listenForIncoming ();
 
-        if (timerLCD->checkTimer (10) == 1) {
+        if (timerLCD->checkTimer () == true) {
             lcd->setTextSize (1);
             lcd->setTextColor(BLACK, WHITE);
 
@@ -440,11 +440,11 @@ main (int argc, char **argv)
                                                                                 lcdCtx.cpuUsage);
         }
 
-        if (timerNTM->checkTimer (1) == 1) {
+        if (timerNTM->checkTimer () == true) {
             outgoingNrf24l01 ();
         }
         
-        if (timerRUD->checkTimer (60) == 1) {
+        if (timerRUD->checkTimer () == true) {
             clientHandler->removeUnusedDeveices ();
         }
     }

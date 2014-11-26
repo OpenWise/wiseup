@@ -140,7 +140,7 @@ WiseClientHandler::updateSensorInfo (rfcomm_data* wisePacket) {
 						printf ("(WiseClientHandler) [updateSensorInfo] CHANGES (%d) -> (%d)\n", sensor->info.backup.sensorHWValue,
 																								sensor->info.value.sensorHWValue);
 						// TODO - Connect to event management system
-						// TODO - Update local database. (MySql)
+						// Update local database. (MySql)
 						WiseDBMng::apiUpdateSensorInfo (sensor_address, sensor_info->sensor_address, 
 										hub_address, sensor_info->sensor_type, data);
 					}
@@ -179,7 +179,7 @@ WiseClientHandler::updateSensorInfo (rfcomm_data* wisePacket) {
 						printf ("(WiseClientHandler) [updateSensorInfo] CHANGES (%d) -> (%d)\n", sensor->info.backup.sensorHWValue,
 																								sensor->info.value.sensorHWValue);
 						// TODO - Connect to event management system
-						// TODO - Update local database. (MySql)
+						// Update local database. (MySql)
 						WiseDBMng::apiUpdateSensorInfo (sensor_address, 0, 
 										hub_address, sensor_info->sensor_type, data);
 					}
@@ -246,7 +246,6 @@ WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
                     return CONNECTED;
                 }
             } else {
-				//printf ("DEBUG_6\n");
                 /* 
                  * New device, let us add it to the list of devices and
                  * send our address back to the device. When the device will recieve 
@@ -296,7 +295,12 @@ WiseClientHandler::sendRegistration (rfcomm_data* wisePacketRX) {
     if (ipcPacketsOut->setClient () == SUCCESS) {
         ipcPacketsOut->setBuffer((unsigned char *)&wisePacketTX);
         if (ipcPacketsOut->sendMsg(32) == false) { }
-        else { CommonMethods::printBuffer ("(WiseClientHandler) [sendRegistration] Registration for ", wisePacketTX.target, 5); }
+        else {
+        	printf ("(WiseClientHandler) [sendRegistration] Registration for  [%d %d %d %d %d]\n", 
+                                                wisePacketTX.target[0], wisePacketTX.target[1], 
+                                                wisePacketTX.target[2], wisePacketTX.target[3], 
+                                                wisePacketTX.target[4]);
+        }
     }
 
     delete ipcPacketsOut;

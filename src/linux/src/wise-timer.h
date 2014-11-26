@@ -12,26 +12,27 @@
 
 class WiseTimer {
     public:
-        int setTimer (time_t sec) {
-            gettimeofday(&m_tv,NULL);
-            m_tv.tv_sec += sec;
-         
-            return 1;
+        void setTimer (uint64_t interval) {
+            m_interval  = interval;
+            m_timestamp = getTimestamp ();
         }
  
-        int checkTimer (time_t sec) {
-            struct timeval ctv;
-            gettimeofday(&ctv,NULL);
-         
-            if( (ctv.tv_sec > m_tv.tv_sec) )
-            {
-                gettimeofday(&m_tv,NULL);
-                m_tv.tv_sec += sec;
-                return 1;
+        bool checkTimer () {
+            if (getTimestamp () - m_timestamp > m_interval) {
+                m_timestamp = getTimestamp ();
+                return true;
             } else {
-                return 0;
+                return false;
             }
         }
+
     private:
-        struct timeval m_tv;
+        uint64_t getTimestamp () {
+            struct timeval tv;
+            gettimeofday(&tv, NULL);
+            return (uint64_t)(1000000 * tv.tv_sec + tv.tv_usec);
+        }
+
+        uint64_t m_interval;
+        uint64_t m_timestamp;
 };
