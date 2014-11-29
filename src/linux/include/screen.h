@@ -11,4 +11,6 @@ class Screen : public PCD8544 {
 public:
 	Screen (spi_context& spi, uint8_t cs, uint8_t dc, uint8_t rst);
 	~Screen ();
+
+	void ScreenOne ();
 };

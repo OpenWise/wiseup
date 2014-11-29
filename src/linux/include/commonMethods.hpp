@@ -26,6 +26,34 @@ typedef struct {
     uint8_t  cpuUsage;
 } screen_context;
 
+typedef struct {
+
+} deamon_context;
+
+typedef struct { 
+    uint8_t isAvalibale : 1;
+    uint8_t isEvent     : 1;
+    uint8_t isValueCng  : 1;
+    uint8_t reserved    : 5;
+} sensor_control_t;
+
+typedef struct { 
+    uint16_t            sensorHWValue;
+    uint16_t            sensorUIValue;
+} sensor_value_t;
+
+typedef struct { 
+    long long           sensorAddress;
+    long long           hubAddress;
+    uint8_t             sensorPort;
+    uint8_t             sensorType;
+    sensor_value_t      value;
+    sensor_value_t      backup;
+    uint64_t            lastUpdate;
+    sensor_control_t    flags;
+    uint16_t            updateInterval;
+} sensor_info_t;
+
 class CommonMethods {
 public:
     static uint64_t getTimestampMillis () {

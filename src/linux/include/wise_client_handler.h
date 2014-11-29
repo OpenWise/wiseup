@@ -31,29 +31,6 @@ typedef struct {
 	uint8_t		eventType;
 } sensor_event_t;
 
-typedef struct { 
-	uint8_t isAvalibale	: 1;
-	uint8_t isEvent		: 1;
-	uint8_t isValueCng	: 1;
-	uint8_t reserved	: 5;
-} sensor_control_t;
-
-typedef struct { 
-	uint16_t			sensorHWValue;
-	uint16_t			sensorUIValue;
-} sensor_value_t;
-
-typedef struct { 
-	long long 			sensorAddress;
-	long long			hubAddress;
-	uint8_t				sensorPort;
-	uint8_t				sensorType;
-	sensor_value_t		value;
-	sensor_value_t		backup;
-	uint64_t			lastUpdate;
-	sensor_control_t	flags;
-} sensor_info_t;
-
 class SensorInfo {
 public:
 	SensorInfo ();
@@ -82,15 +59,16 @@ class WiseClient {
         }
         
         void printAddress () {
-            printf ("Client address ( ");
+            printf ("[ ");
             for (int i = 0; i < 5; i++) {
                 printf ("%x ", address[i]);
-            } printf (")\n");
+            } printf ("]\n");
         }
 		
 		void 		addSensor (SensorInfo &info);
 		bool 		removeSensor (long long id);
 		SensorInfo* findSensor (long long id);
+		SensorInfo* popSensor ();
 		int 		countSensor ();
 		void		printSensorInfo ();
         
@@ -109,9 +87,14 @@ class WiseClientHandler {
          * Need to update this method with stl find method.
          */
         wise_status_t   registrationCheck (rfcomm_data* wisePacket);
+		void            sendRegistration (rfcomm_data* wisePacket);
+		void			addNewClient (uint8_t* address);
+		void			addNewClientSensors (rfcomm_data* wisePacket);
+		
+		void			disableSensorUI (long long sensorID);
         void            removeUnusedDeveices ();
         WiseClient*     findClient (uint8_t * address);
-        void            sendRegistration (rfcomm_data* wisePacket);
+        
 		void			clentDataBaseInit ();
 		void			updateSensorInfo (rfcomm_data* wisePacket);
 		SensorInfo* 	findSensor (long long sensorAddr);

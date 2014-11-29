@@ -26,28 +26,37 @@ WiseDBDAL::~WiseDBDAL () {
 
 void
 WiseDBDAL::updateSensorInfo (long long sensorAddres, long long hubAddress, uint8_t sensorPort, 
-						uint8_t sensorType, bool availability, uint16_t value) {
+						uint8_t sensorType, bool availability, uint16_t value, uint16_t updateInterval) {
 	char query[256];
 	memset (query, 0x0, 256);
-	sprintf (query, "call sp_update_sensor_info ('%lld', '%lld', '%d', '%d', '%d', '%d')", 
-				sensorAddres, hubAddress, sensorPort, sensorType, (availability == true) ? 1:0, value);
+	sprintf (query, "call sp_update_sensor_info ('%lld', '%lld', '%d', '%d', '%d', '%d', '%d')", 
+				sensorAddres, hubAddress, sensorPort, sensorType, (availability == true) ? 1:0, value, updateInterval);
 
 	/* Execute MySQL query */
 	m_dbconn->executeQuery(query);
 	m_dbconn->freeRes();
-	// printf ("(WiseDBDAL) [%s]\n", query);
 }
 
 void
-WiseDBDAL::setSensorAvailability (long long hubAddress, bool availability) {
+WiseDBDAL::setSensorAvailability (long long sensorAddress, bool availability) {
 	char query[256];
 	memset (query, 0x0, 256);
-	sprintf (query, "call sp_set_sensor_availability ('%lld', '%d')", hubAddress, (availability == true) ? 1:0);
+	sprintf (query, "call sp_set_sensor_availability ('%lld', '%d')", sensorAddress, (availability == true) ? 1:0);
 
 	/* Execute MySQL query */
 	m_dbconn->executeQuery(query);
 	m_dbconn->freeRes();
-	// printf ("(WiseDBDAL) [%s]\n", query);
+}
+
+void
+WiseDBDAL::setHubSensorsAvailability (long long hubAddress, bool availability) {
+	char query[256];
+	memset (query, 0x0, 256);
+	sprintf (query, "call sp_set_hub_sensors_availability ('%lld', '%d')", hubAddress, (availability == true) ? 1:0);
+
+	/* Execute MySQL query */
+	m_dbconn->executeQuery(query);
+	m_dbconn->freeRes();
 }
 
 void
@@ -59,7 +68,6 @@ WiseDBDAL::setAllSensorNotConnected () {
 	/* Execute MySQL query */
 	m_dbconn->executeQuery(query);
 	m_dbconn->freeRes();
-	// printf ("(WiseDBDAL) [%s]\n", query);
 }
 
 void * 
@@ -113,7 +121,7 @@ dbMngWorker (void * args) {
 							
 							// Calling DAL methods
 							obj->m_Dal->updateSensorInfo (sensor_address, hub_address, sensor_info->sensor_address, 
-																sensor_info->sensor_type, true, data);
+																sensor_info->sensor_type, true, data, sensor_info->sensor_update_interval);
 																
 							sensor_info = (rfcomm_sensor_info *)data_ptr;
 						}
@@ -141,7 +149,7 @@ dbMngWorker (void * args) {
 							
 							// Calling DAL methods
 							obj->m_Dal->updateSensorInfo (sensor_address, hub_address, 0, 
-															sensor_info->sensor_type, true, data);
+															sensor_info->sensor_type, true, data, sensor_info->sensor_update_interval);
 																
 							sensor_info = (rfcomm_individual_sensor_info *)data_ptr;
 						}
@@ -151,12 +159,20 @@ dbMngWorker (void * args) {
 			}
 			break;
 			case SP_SET_SENSOR_AVAILABILITY: {
-				printf ("(WiseDBMng) [dbMngWorker] SP_SET_SENSOR_AVAILABILITY\n");
+				db_sensor_info_t* sensor = (db_sensor_info_t* )msg.args;
+				
+				// Calling DAL methods
+				obj->m_Dal->setSensorAvailability (sensor->address, sensor->availability);
+				printf ("(WiseDBMng) [dbMngWorker] SP_SET_SENSOR_AVAILABILITY (%s)\n", (sensor->availability) ? "true" : "false");
+			}
+			break;
+			case SP_SET_HUB_SENSORS_AVAILABILITY: {
+				printf ("(WiseDBMng) [dbMngWorker] SP_SET_HUB_SENSORS_AVAILABILITY (%s)\n", (msg.args[0] == 1) ? "true" : "false");
 				long long hub_address = 0;
 				memcpy (&hub_address, wisePacket->sender, 5);
 				
 				// Calling DAL methods
-				obj->m_Dal->setSensorAvailability (hub_address, (msg.args[0] == 1) ? true : false);
+				obj->m_Dal->setHubSensorsAvailability (hub_address, (msg.args[0] == 1) ? true : false);
 			}
 			break;
 			case SP_SET_ALL_SENSOR_NOT_CONNECTED: {
@@ -170,7 +186,7 @@ dbMngWorker (void * args) {
 				// Calling DAL methods
 				db_sensor_info_t* sensor = (db_sensor_info_t* )msg.args;
 				obj->m_Dal->updateSensorInfo (sensor->address, sensor->hubAddress, sensor->id, 
-																sensor->type, true, sensor->value);
+																sensor->type, true, sensor->value, sensor->updateInterval);
 			}
 			break;
 		}
@@ -221,7 +237,7 @@ WiseDBMng::apiUpdateSensorsInfo (rfcomm_data * data) {
 }
 
 void
-WiseDBMng::apiUpdateSensorInfo (long long address, uint8_t id, long long hubAddress, uint8_t type, uint16_t value) {
+WiseDBMng::apiUpdateSensorInfo (long long address, uint8_t id, long long hubAddress, uint8_t type, uint16_t value, uint16_t updateInterval) {
 	db_msg_t 			msg;
 	db_sensor_info_t* 	sensor;
 	WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
@@ -235,6 +251,7 @@ WiseDBMng::apiUpdateSensorInfo (long long address, uint8_t id, long long hubAddr
 		sensor->hubAddress = hubAddress;
 		sensor->type = type;
 		sensor->value = value;
+		sensor->updateInterval = updateInterval;
 
 		if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
 	} else {
@@ -244,13 +261,33 @@ WiseDBMng::apiUpdateSensorInfo (long long address, uint8_t id, long long hubAddr
 }
 
 void
-WiseDBMng::apiSetSensorAvailability (rfcomm_data * data, bool availability) {
+WiseDBMng::apiSetSensorAvailability (long long address, bool availability) {
+	db_msg_t 			msg;
+	db_sensor_info_t* 	sensor;
+	WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
+	if (ipcDB->setClient () == SUCCESS) {
+		ipcDB->setBuffer((unsigned char *)&msg);
+		msg.spId = SP_SET_SENSOR_AVAILABILITY;
+		
+		sensor = (db_sensor_info_t* )msg.args;
+		sensor->address = address;
+		sensor->availability = availability;
+		
+		if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
+	} else {
+		printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
+	}
+	delete ipcDB;
+}
+
+void
+WiseDBMng::apiSetHubSensorsAvailability (rfcomm_data * data, bool availability) {
 	db_msg_t 	msg;
 	WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
 	if (ipcDB->setClient () == SUCCESS) {
 		memcpy(&msg.packet, (uint8_t *)data, 32);
 		ipcDB->setBuffer((unsigned char *)&msg);
-		msg.spId = SP_SET_SENSOR_AVAILABILITY;
+		msg.spId = SP_SET_HUB_SENSORS_AVAILABILITY;
 		msg.args[0] = (availability == true) ? YES:NO;
 		if (ipcDB->sendMsg(sizeof(db_msg_t)) == false) { }
 	} else {

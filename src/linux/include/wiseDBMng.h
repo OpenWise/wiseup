@@ -22,6 +22,7 @@ using namespace std;
 #define SP_SET_SENSOR_AVAILABILITY			2
 #define SP_SET_ALL_SENSOR_NOT_CONNECTED		3
 #define SP_UPDATE_SENSOR_INFO_DATA 			4
+#define SP_SET_HUB_SENSORS_AVAILABILITY		5
 
 typedef struct {
 	uint8_t		spId;
@@ -31,11 +32,13 @@ typedef struct {
 } db_msg_t;
 
 typedef struct {
-	long long address;
-	uint8_t id;
-	long long hubAddress;
-	uint8_t type;
-	uint16_t value;
+	long long 	address;
+	uint8_t 	id;
+	long long 	hubAddress;
+	uint8_t 	type;
+	uint16_t 	value;
+	bool 		availability;
+	uint16_t	updateInterval;
 } db_sensor_info_t;
 
 class WiseDBDAL {
@@ -44,8 +47,9 @@ public:
 	~WiseDBDAL ();
 	
 	void updateSensorInfo (long long sensorAddres, long long hubAddress, uint8_t sensorPort, 
-							uint8_t sensorType, bool availability, uint16_t value);
-	void setSensorAvailability (long long hubAddress, bool availability);
+							uint8_t sensorType, bool availability, uint16_t value, uint16_t updateInterval);
+	void setSensorAvailability (long long sensorAddress, bool availability);
+	void setHubSensorsAvailability (long long hubAddress, bool availability);
 	void setAllSensorNotConnected ();
 	
 private:
@@ -58,8 +62,9 @@ public:
 	~WiseDBMng ();
 	
 	static void apiUpdateSensorsInfo (rfcomm_data * data);
-	static void apiUpdateSensorInfo (long long address, uint8_t id, long long hubAddress, uint8_t type, uint16_t value);
-	static void apiSetSensorAvailability (rfcomm_data * data, bool availability);
+	static void apiUpdateSensorInfo (long long address, uint8_t id, long long hubAddress, uint8_t type, uint16_t value, uint16_t updateInterval);
+	static void apiSetSensorAvailability (long long address, bool availability);
+	static void apiSetHubSensorsAvailability (rfcomm_data * data, bool availability);
 	static void apiSetAllSensorNotConnected ();
 	
 	bool start ();

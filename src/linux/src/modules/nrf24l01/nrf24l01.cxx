@@ -227,7 +227,7 @@ NRF24L01::send (uint8_t * value) {
     
     while (dataSending ()) {  }
 	usleep (100000);
-    init (m_cs, m_ce);
+    // init (m_cs, m_ce);
 
     /*ceLow ();
     rxPowerUp ();

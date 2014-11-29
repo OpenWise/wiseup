@@ -33,6 +33,7 @@
 
 #include "wiseDBMng.h"
 #include "screen.h"
+#include "nrfTaskMng.h"
 
 #include <errno.h>
 
@@ -43,12 +44,12 @@ void stdout_msg ();
 uint8_t local_address[5]     = {0x01, 0x02, 0x03, 0x04, 0x05};
 uint8_t wise_stdout_buffer[128];
 
-int 			    running 	    = 0;
-comm::NRF24L01      *sensor 	    = NULL;
-comm::WiseRFComm    *net            = NULL;
-WiseClientHandler   *clientHandler  = NULL;
-WiseCommandHandler  *cmdHandler     = NULL;
-Screen*             lcd             = NULL;
+int 			    running 	        = 0;
+comm::NRF24L01      *sensor 	       = NULL;
+comm::WiseRFComm    *net                = NULL;
+WiseClientHandler   *clientHandler      = NULL;
+WiseCommandHandler  *cmdHandler         = NULL;
+nrfActionTaskMng*   wiseNRFActionTask   = NULL;
 screen_context      lcdCtx;
 
 /* Message queue for outgoing packets */
@@ -64,20 +65,22 @@ sync_context_t  msgPullSyncContext;
 
 void
 dataHandling (rfcomm_data * packet) {
-    /* 1. Chick the registarion ID.*/
+    // Chick the registarion ID.
     wise_status_t deviceStatus = clientHandler->registrationCheck (packet);
-    if (deviceStatus != CONNECTED) {
-        if (deviceStatus == DISCOVERY) {
-            /* 2.1. Send gateway address back to the device */
-            clientHandler->sendRegistration (packet);
-        }
-	} else {
-        /* 2.1. Execute the requested command*/
-        cmdHandler->commandHandler (packet);
+    if (deviceStatus == DISCOVERY) {
+		// Add new clent to local DB
+		clientHandler->addNewClient (packet->sender);
+		
+		// Send gateway address back to the device
+		clientHandler->sendRegistration (packet);
+	} else if (deviceStatus == CONNECTED) {
+		// Update the sensors info
 		clientHandler->updateSensorInfo (packet);
 		
-		printf ("(wise-nrfd) [dataHandling] Updating sensor data \n");
-    }
+		// Execute the requested command
+        cmdHandler->commandHandler (packet);
+		printf ("(wise-nrfd) [dataHandling] UPDATE INFO \n");
+    } else if (deviceStatus == UNKNOWN) { }
 
     lcdCtx.rxPacketCount++;
 }
@@ -160,6 +163,14 @@ phpCommandListener (void *) {
 
                 memcpy (msg.packet, net->ptrTX, 32);
 
+                long long addr = hubAddress << 8 || (uint8_t)sensorAddress;
+                SensorInfo* sensor = clientHandler->findSensor(addr);
+                if (sensor != NULL) {
+                    wiseNRFActionTask->apiAddTask (&sensor->info, wisePacketTX);
+                } else {
+                    printf ("(wise-nrfd) [phpCommandListener] COULDN'T FIND SENSOR\n");
+                }
+
                 pthread_mutex_lock   (&msgPullSyncContext.mutex);
                 messagePull.push_back(msg);
                 pthread_cond_signal  (&msgPullSyncContext.cond);
@@ -236,7 +247,7 @@ outgoingNrf24l01 () {
         msg.timestamp = CommonMethods::getTimestampMillis();
 
         // Power down the screen (wierd issue with NRF CE pin)
-        lcd->powerDown ();
+        // lcd->powerDown ();
 
         // Add random id to the packet
         srand (time(NULL));
@@ -251,7 +262,7 @@ outgoingNrf24l01 () {
         }
 
         // Power up the screen
-        lcd->powerUp ();
+        // lcd->powerUp ();
 
         // Increase TX packet count
         lcdCtx.txPacketCount++;
@@ -386,16 +397,17 @@ main (int argc, char **argv)
     clientHandler   = new WiseClientHandler  ();
     cmdHandler      = new WiseCommandHandler ();
 	
-	WiseDBDAL* 			wiseDAL 		= new WiseDBDAL ();
-	WiseDBMng* 			wiseDB  		= new WiseDBMng (wiseDAL);
-	
-    lcd = new Screen (sensor->getSPIHandler(), 25, 23, 24);
+	WiseDBDAL* 			wiseDAL 		   = new WiseDBDAL ();
+	WiseDBMng* 			wiseDB  		   = new WiseDBMng (wiseDAL);
+    wiseNRFActionTask  = new nrfActionTaskMng (2000000);
 	
 	timerNTM->setTimer (1000000);
-    timerRUD->setTimer (60000000);
+    timerRUD->setTimer (10000000);
     timerLCD->setTimer (10000000);
 	
 	if (!wiseDB->start()) { exit (-1); }
+
+    if (!wiseNRFActionTask->start()) { exit (-1); }
 	
 	usleep (200000); // Remove race condition, wiseDB need to start its engine.
 	WiseDBMng::apiSetAllSensorNotConnected ();
@@ -403,37 +415,11 @@ main (int argc, char **argv)
 	usleep (200000);
 	clientHandler->clentDataBaseInit();
 
-	lcd->clearscr ();
-	
-	char Str[16];
     /* The Big Loop */
     while (!running) {
         net->listenForIncoming ();
 
         if (timerLCD->checkTimer () == true) {
-            lcd->setTextSize (1);
-            lcd->setTextColor(BLACK, WHITE);
-
-            snprintf(Str, sizeof(Str), "TX: %d", lcdCtx.txPacketCount);
-            lcd->setCursor(1, 1);
-            lcd->print(Str);
-
-            snprintf(Str, sizeof(Str), "RX: %d", lcdCtx.rxPacketCount);
-            lcd->setCursor(1, 10);
-            lcd->print(Str);
-
-            lcdCtx.cpuTemperature = getCPUTemp ();
-            snprintf(Str, sizeof(Str), "CPU (C): %dc", lcdCtx.cpuTemperature);
-            lcd->setCursor(1, 20);
-            lcd->print(Str);
-
-            lcdCtx.cpuUsage = getCPULoad ();
-            snprintf(Str, sizeof(Str), "CPU (%): %d%", lcdCtx.cpuUsage);
-            lcd->setCursor(1, 30);
-            lcd->print(Str);
-
-            lcd->refresh ();
-
             printf ("(Screen) TX: %d, RX: %d, CPU (C): %dc, CPU (%): %d%\n",    lcdCtx.txPacketCount,
                                                                                 lcdCtx.rxPacketCount,
                                                                                 lcdCtx.cpuTemperature,
@@ -449,13 +435,15 @@ main (int argc, char **argv)
         }
     }
 	
-	wiseDB->stop();
+	wiseDB->stop ();
+    wiseNRFActionTask->stop ();
+
 	delete wiseDB;
-    delete lcd;
 	delete sensor;
     delete timerNTM;
     delete timerRUD;
     delete timerLCD;
+    delete wiseNRFActionTask;
     
     pthread_mutex_destroy (&msgPullSyncContext.mutex);
     pthread_cond_destroy  (&msgPullSyncContext.cond);
