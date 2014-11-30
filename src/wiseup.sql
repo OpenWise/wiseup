@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Nov 07, 2014 at 05:16 PM
+-- Generation Time: Nov 30, 2014 at 07:45 PM
 -- Server version: 5.5.38
 -- PHP Version: 5.4.4-14+deb7u12
 
@@ -26,7 +26,6 @@ DELIMITER $$
 --
 -- Procedures
 --
-DROP PROCEDURE IF EXISTS `sp_get_sensors_info`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_sensors_info`()
 BEGIN
 
@@ -38,7 +37,6 @@ WHERE SI.available = '1';
 
 END$$
 
-DROP PROCEDURE IF EXISTS `sp_set_all_sensor_not_connected`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_set_all_sensor_not_connected`( )
 BEGIN
 
@@ -47,7 +45,17 @@ SET `available` = '0';
 
 END$$
 
-DROP PROCEDURE IF EXISTS `sp_set_sensors_action`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_set_hub_sensors_availability`(
+hub_address_t bigint,
+availability int )
+BEGIN
+
+UPDATE `wiseup`.`sensor-info`
+SET `available` = availability
+WHERE sensor_hub_address = hub_address_t;
+
+END$$
+
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_set_sensors_action`(
 sensor_id_t bigint,
 sensor_action int )
@@ -64,26 +72,25 @@ WHERE SA.sensor_id = sensor_id_t;
 
 END$$
 
-DROP PROCEDURE IF EXISTS `sp_set_sensor_availability`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_set_sensor_availability`(
-hub_address_t bigint,
+sensor_address_t bigint,
 availability int )
 BEGIN
 
 UPDATE `wiseup`.`sensor-info`
 SET `available` = availability
-WHERE sensor_hub_address = hub_address_t;
+WHERE sensor_id = sensor_address_t;
 
 END$$
 
-DROP PROCEDURE IF EXISTS `sp_update_sensor_info`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_update_sensor_info`(
 sensor_id_t bigint,
 sensor_hub_address_t bigint,
 sensor_address_t tinyint,
 sensor_family_type_t tinyint,
 available_t tinyint,
-value_t int)
+value_t int,
+update_interval_t smallint)
 BEGIN
 	IF EXISTS (SELECT * FROM  `sensor-info`  WHERE `sensor_id` = sensor_id_t) THEN
 BEGIN
@@ -95,7 +102,7 @@ END;
 ELSE
 BEGIN
 
-	INSERT INTO `wiseup`.`sensor-info` (`sensor_id`, `sensor_hub_address`, `sensor_address`, `sensor_name`, `sensor_family_type`, `registration_datetime`, `update_interval`, `available`) VALUES (sensor_id_t,sensor_hub_address_t,sensor_address_t,'New sensor',sensor_family_type_t,NOW(),'60',available_t);
+	INSERT INTO `wiseup`.`sensor-info` (`sensor_id`, `sensor_hub_address`, `sensor_address`, `sensor_name`, `sensor_family_type`, `registration_datetime`, `update_interval`, `available`) VALUES (sensor_id_t,sensor_hub_address_t,sensor_address_t,'New sensor',sensor_family_type_t,NOW(),update_interval_t,available_t);
 
 	INSERT INTO `wiseup`.`sensor-data` (`sensor_id`, `time_stamp`, `value`) VALUES (sensor_id_t,UNIX_TIMESTAMP(),value_t);
 
@@ -117,7 +124,6 @@ DELIMITER ;
 -- Table structure for table `sensor-action`
 --
 
-DROP TABLE IF EXISTS `sensor-action`;
 CREATE TABLE IF NOT EXISTS `sensor-action` (
   `sensor_id` bigint(20) unsigned NOT NULL,
   `action` int(11) NOT NULL,
@@ -130,7 +136,6 @@ CREATE TABLE IF NOT EXISTS `sensor-action` (
 -- Table structure for table `sensor-data`
 --
 
-DROP TABLE IF EXISTS `sensor-data`;
 CREATE TABLE IF NOT EXISTS `sensor-data` (
   `sensor_id` bigint(20) unsigned NOT NULL,
   `time_stamp` bigint(20) unsigned NOT NULL,
@@ -144,14 +149,13 @@ CREATE TABLE IF NOT EXISTS `sensor-data` (
 -- Table structure for table `sensor-data-history`
 --
 
-DROP TABLE IF EXISTS `sensor-data-history`;
 CREATE TABLE IF NOT EXISTS `sensor-data-history` (
   `record_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `sensor_id` bigint(20) unsigned NOT NULL,
   `time_stamp` bigint(20) NOT NULL,
   `value` int(11) NOT NULL,
   PRIMARY KEY (`record_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=10231 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1811 ;
 
 -- --------------------------------------------------------
 
@@ -159,7 +163,6 @@ CREATE TABLE IF NOT EXISTS `sensor-data-history` (
 -- Table structure for table `sensor-info`
 --
 
-DROP TABLE IF EXISTS `sensor-info`;
 CREATE TABLE IF NOT EXISTS `sensor-info` (
   `sensor_id` bigint(20) unsigned NOT NULL,
   `sensor_hub_address` bigint(20) unsigned NOT NULL,
