@@ -163,12 +163,13 @@ phpCommandListener (void *) {
 
                 memcpy (msg.packet, net->ptrTX, 32);
 
-                long long addr = hubAddress << 8 || (uint8_t)sensorAddress;
+                long long addr = (hubAddress << 8) | sensorAddress;
                 SensorInfo* sensor = clientHandler->findSensor(addr);
                 if (sensor != NULL) {
                     wiseNRFActionTask->apiAddTask (&sensor->info, wisePacketTX);
                 } else {
-                    printf ("(wise-nrfd) [phpCommandListener] COULDN'T FIND SENSOR\n");
+                    printf ("(wise-nrfd) [phpCommandListener] COULDN'T FIND SENSOR (%lld)\n", addr);
+					clientHandler->printClentInfo ();
                 }
 
                 pthread_mutex_lock   (&msgPullSyncContext.mutex);

@@ -22,7 +22,9 @@ nrfActionTaskMng::~nrfActionTaskMng () {
 
 void * 
 nrfActionTaskExecuterWorker (void * args) {
-	nrfActionTaskMng* obj 	= (nrfActionTaskMng*)args;
+	nrfActionTaskMng* 	obj 		 = (nrfActionTaskMng*)args;
+	bool				isDelete	 = false;
+	std::vector<nrf_action_task>::iterator indexToDelete;
 	while (obj->m_isWorking) {
 		pthread_mutex_lock (&obj->m_lock.mutex);
 		if (obj->m_tasks.size() > 0) {
@@ -49,14 +51,19 @@ nrfActionTaskExecuterWorker (void * args) {
 						                                                item->packet.target[0], item->packet.target[1], 
 						                                                item->packet.target[2], item->packet.target[3], 
 						                                                item->packet.target[4]);
-							obj->m_tasks.erase (item);
+							isDelete 	  = true;
+							indexToDelete = item;
 						}
 					}
 				}
 			}
 		}
+		
+		if (isDelete) {
+			obj->m_tasks.erase (indexToDelete);
+			isDelete = false;
+		}
 		pthread_mutex_unlock (&obj->m_lock.mutex);
-
 		usleep (obj->m_interval);
 	}
 }
