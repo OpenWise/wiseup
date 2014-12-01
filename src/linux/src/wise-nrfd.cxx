@@ -39,6 +39,8 @@
 
 using namespace std;
 
+#define DEAMON_REQUEST_IS_ALIVE 1
+
 void stdout_msg ();
 
 uint8_t local_address[5]     = {0x01, 0x02, 0x03, 0x04, 0x05};
@@ -60,6 +62,7 @@ pid_t pid, sid;
 
 pthread_t       ipcNRFOutListenerThread;
 pthread_t       ipcPHPNRFOutListenerThread;
+pthread_t       ipcPHPDeamonAdminListenerThread;
 
 sync_context_t  msgPullSyncContext;
 
@@ -193,6 +196,54 @@ phpCommandListener (void *) {
     }
 
     delete ipcNrfOut;
+    return NULL;
+}
+
+void *
+deamonListener (void *) {
+    /* UNIX domain socket listener for nrf24l01 outgoing packets */
+    WiseIPC* ipcDeamon = NULL;
+    try {
+        ipcDeamon = new WiseIPC ("/tmp/wiseup/deamon_admin_php");
+        ipcDeamon->setServer ();
+        
+        char message[128] ={0};
+        int client = -1;
+        while (1) {
+            client = ipcDeamon->listenIPC ();
+            ipcDeamon->setBuffer ((uint8_t *)message);
+            ipcDeamon->readMsg (client, 128);
+
+            try {
+                Json::Value root;
+                Json::Reader reader;
+
+                std::string json = string(message); 
+                bool parsingSuccessful = reader.parse( json, root );
+                if (!parsingSuccessful) {
+                    std::cout  << "Failed to parse configuration\n"
+                               << reader.getFormattedErrorMessages();
+                }
+
+                int request = root.get("request", 0 ).asInt();
+				switch (request) {
+					case DEAMON_REQUEST_IS_ALIVE:
+						printf ("(wise-nrfd) [deamonListener] DEAMON_REQUEST_IS_ALIVE\n");
+						sprintf(message, "true");
+						write (client, message, 4);
+					break;
+				}
+            } catch (...) {
+                printf ("(wise-nrfd) ERROR \n");
+            }
+
+            close (client);
+        }
+    } catch (FFError e) {
+        std::cout << e.Label.c_str() << std::endl;
+    }
+
+    delete ipcDeamon;
     return NULL;
 }
 
@@ -371,6 +422,12 @@ main (int argc, char **argv)
     }
 
     error = pthread_create(&ipcPHPNRFOutListenerThread, NULL, phpCommandListener, NULL);
+    if (error) {
+         printf("ERROR: return code from pthread_create() is %d\n", error);
+         exit(-1);
+    }
+	
+	error = pthread_create(&ipcPHPDeamonAdminListenerThread, NULL, deamonListener, NULL);
     if (error) {
          printf("ERROR: return code from pthread_create() is %d\n", error);
          exit(-1);

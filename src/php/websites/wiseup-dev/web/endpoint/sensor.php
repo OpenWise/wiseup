@@ -17,7 +17,7 @@ function parse_request_data($requestMethod, $json_data) {
 		break;
 	/* *** GET SECTION *** */
 		case "get_sensors_info":				
-			$query = sprintf("call sp_get_sensors_info()  ");
+			$query = sprintf("call sp_get_sensors_info()");
 			$db_data = mysql_query ($query);
 			$row_count = mysql_num_rows($db_data);
 			if ($row_count > 0) {
@@ -52,6 +52,11 @@ function parse_request_data($requestMethod, $json_data) {
 			} else {
 				$response_stream = "NO_DATA";
 			}
+		break;
+		case "sp_set_all_sensor_not_connected":				
+			$query = sprintf("call sp_set_all_sensor_not_connected()");
+			$db_data = mysql_query ($query);
+			$response_stream = "ok";
 		break;
 	}
 	

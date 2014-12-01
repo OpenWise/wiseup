@@ -1,4 +1,5 @@
 var endpoint_sensor = 'endpoint/sensor.php';
+var endpoint_deamon = 'endpoint/deamon.php';
 var request_interval = 2000;
 
 var interval_id_get_favorite_sensors = -1;
@@ -110,27 +111,43 @@ ui_builder_sensor.prototype.ui_sensor_footer_object = function () {
 
 function start_favorite_sensors_service (view_container) {
 	interval_id_get_favorite_sensors = setInterval(function() { ui_binder_favorite_sensors(view_container) }, request_interval);
+	setInterval(function() { ckeck_deamon_is_alive(view_container) }, 20000);
 	ui_binder_favorite_sensors (view_container);
 }
 
-function end_favorite_sensors_service () {
+function end_favorite_sensors_service (view_container) {
 	clearInterval(interval_id_get_favorite_sensors);
 }
 
-function generate_view_sensor_from_data (data) {
-	var json = JSON.parse(data);
-	// alert(data);
-	var container = "<div class='infobox-container'>";
-	if (json != null) {
-		var sensors_count = json.sensor_info.length;
-		
-		for (var index = 0; index < sensors_count; index++) {
-			var sensor = json.sensor_info[index];
-			var sensor_builder = new ui_builder_sensor (sensor);
-			container += sensor_builder.ui_router_sensor ();
+function ckeck_deamon_is_alive (view_container) {
+	check_deamon_alive (function (data) {
+		var json = JSON.parse(data);
+		if (json != null) {
+			if (json.is_alive == "false") {
+				sp_set_all_sensor_not_connected (function (data) {});
+			}
 		}
-	} 
+	});
+}
 
+function generate_view_sensor_from_data (data) {
+	var container = "<div class='infobox-container'>";
+	
+	if (data == "NO_DATA") {
+		container += "Daemon is off-line";
+	} else {
+		var json = JSON.parse(data);	
+		if (json != null) {
+			var sensors_count = json.sensor_info.length;
+			
+			for (var index = 0; index < sensors_count; index++) {
+				var sensor = json.sensor_info[index];
+				var sensor_builder = new ui_builder_sensor (sensor);
+				container += sensor_builder.ui_router_sensor ();
+			}
+		}
+	}
+	
 	return container + "</div>";
 }
 
@@ -231,4 +248,24 @@ function set_sensor_web_value (sensor_id, action, fn_ptr) {
 	json_string = JSON.stringify(json);
 	
 	$.post(endpoint_sensor, json_string, fn_ptr);
+}
+
+function sp_set_all_sensor_not_connected (fn_ptr) {
+	var json = new Object();
+	var json_string = "";
+	
+	json.method = "sp_set_all_sensor_not_connected";
+	json_string = JSON.stringify(json);
+	
+	$.post(endpoint_sensor, json_string, fn_ptr);
+}
+
+function check_deamon_alive (fn_ptr) {
+	var json = new Object();
+	var json_string = "";
+	
+	json.method = "check_deamon_alive";
+	json_string = JSON.stringify(json);
+	
+	$.post(endpoint_deamon, json_string, fn_ptr);
 }
