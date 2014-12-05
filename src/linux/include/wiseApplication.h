@@ -15,6 +15,8 @@
 #include "commonMethods.hpp"
 #include "wise_mysql.h"
 
+#define MAX_EXECUTORS	20
+
 using namespace std;
 
 typedef struct {
@@ -27,6 +29,20 @@ typedef struct {
 	vector<uint64_t> attachedSensorIDList;
 } app_info_t;
 
+class ApllicationExecutor {
+public:
+	ApllicationExecutor ();
+	~ApllicationExecutor ();
+	
+	void execute (char * path);
+	
+	char scripPath[256];
+	bool isAvailable;
+
+private:
+	pthread_t m_worker;
+};
+
 class WiseApplicationManager {
 public:
 	WiseApplicationManager ();
@@ -35,9 +51,15 @@ public:
 	bool getAllApplications ();
 	app_info_t * findApplication (uint64_t appID);
 	
-	sync_context_t	lock;
+	ApllicationExecutor* getFreeExecutor ();
+	
+	void printApplicationsInfo ();
+	
+	sync_context_t	app_lock;
+	sync_context_t	exec_lock;
 	
 private:
 	vector<app_info_t>	m_applications;
+	ApllicationExecutor m_executors[MAX_EXECUTORS];
 	MySQL *				m_dbconn;
 };

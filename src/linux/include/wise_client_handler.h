@@ -42,6 +42,7 @@ public:
 	int 				getEventSize ();
 	
 	sensor_info_t			info;
+	vector<uint64_t>		ApplicationIDList;
 	vector<sensor_event_t> 	events;
 };
 

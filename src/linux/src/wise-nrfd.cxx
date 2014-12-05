@@ -34,6 +34,7 @@
 #include "wiseDBMng.h"
 #include "screen.h"
 #include "nrfTaskMng.h"
+#include "wiseApplication.h"
 
 #include <errno.h>
 
@@ -46,13 +47,14 @@ void stdout_msg ();
 uint8_t local_address[5]     = {0x01, 0x02, 0x03, 0x04, 0x05};
 uint8_t wise_stdout_buffer[128];
 
-int 			    running 	        = 0;
-comm::NRF24L01      *sensor 	       = NULL;
-comm::WiseRFComm    *net                = NULL;
-WiseClientHandler   *clientHandler      = NULL;
-WiseCommandHandler  *cmdHandler         = NULL;
-nrfActionTaskMng*   wiseNRFActionTask   = NULL;
-screen_context      lcdCtx;
+int 			    	running 	        = 0;
+comm::NRF24L01*			sensor 	       		= NULL;
+comm::WiseRFComm*		net                	= NULL;
+WiseClientHandler*		clientHandler      	= NULL;
+WiseCommandHandler*		cmdHandler         	= NULL;
+nrfActionTaskMng*   	wiseNRFActionTask   = NULL;
+screen_context      	lcdCtx;
+WiseApplicationManager* appMng 				= NULL;
 
 /* Message queue for outgoing packets */
 vector<nrf24l01_msg_t> messagePull;
@@ -472,6 +474,10 @@ main (int argc, char **argv)
 	
 	usleep (200000);
 	clientHandler->clentDataBaseInit();
+	
+	appMng = new WiseApplicationManager ();
+	appMng->getAllApplications ();
+	appMng->printApplicationsInfo ();
 
     /* The Big Loop */
     while (!running) {
