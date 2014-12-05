@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Nov 30, 2014 at 07:45 PM
+-- Generation Time: Dec 05, 2014 at 06:02 PM
 -- Server version: 5.5.38
 -- PHP Version: 5.4.4-14+deb7u12
 
@@ -26,6 +26,16 @@ DELIMITER $$
 --
 -- Procedures
 --
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_applications_info`()
+BEGIN
+
+SELECT A.app_id, A.app_name, A.app_description, A.app_install_datetime, A.app_is_available, A.database, SA.sensor_id
+FROM `application` A
+JOIN `sensor-application` SA ON A.app_id = SA.app_id
+WHERE A.app_is_installed = '1';
+
+END$$
+
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_sensors_info`()
 BEGIN
 
@@ -121,6 +131,23 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `application`
+--
+
+CREATE TABLE IF NOT EXISTS `application` (
+  `app_id` bigint(20) unsigned NOT NULL,
+  `app_name` varchar(64) NOT NULL,
+  `app_description` varchar(128) NOT NULL,
+  `app_is_installed` bit(1) NOT NULL,
+  `app_install_datetime` datetime NOT NULL,
+  `app_is_available` bit(1) NOT NULL,
+  `database` text NOT NULL,
+  PRIMARY KEY (`app_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `sensor-action`
 --
 
@@ -129,6 +156,19 @@ CREATE TABLE IF NOT EXISTS `sensor-action` (
   `action` int(11) NOT NULL,
   PRIMARY KEY (`sensor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sensor-application`
+--
+
+CREATE TABLE IF NOT EXISTS `sensor-application` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `sensor_id` bigint(20) unsigned NOT NULL,
+  `app_id` bigint(20) unsigned NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=2 ;
 
 -- --------------------------------------------------------
 
@@ -155,7 +195,7 @@ CREATE TABLE IF NOT EXISTS `sensor-data-history` (
   `time_stamp` bigint(20) NOT NULL,
   `value` int(11) NOT NULL,
   PRIMARY KEY (`record_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1811 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=12480 ;
 
 -- --------------------------------------------------------
 

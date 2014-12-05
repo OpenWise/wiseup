@@ -37,15 +37,15 @@ rfcomm_sensor_info*	next_sensor_info_slot 	  = NULL;
 
 #define MAPPING_SIZE    4
 sensor_t mapping[] = {
-  { DIGITAL_RELAY_ADDR_1,  DIGITAL_RELAY_PIN_1,  RELAY_SENSOR_TYPE, 0 },
-  { DIGITAL_RELAY_ADDR_2,  DIGITAL_RELAY_PIN_2,  RELAY_SENSOR_TYPE, 0 },
-  { DIGITAL_RELAY_ADDR_3,  DIGITAL_RELAY_PIN_3,  RELAY_SENSOR_TYPE, 0 },
-  { DIGITAL_RELAY_ADDR_4,  DIGITAL_RELAY_PIN_4,  RELAY_SENSOR_TYPE, 0 }
+  { DIGITAL_RELAY_ADDR_1,  DIGITAL_RELAY_PIN_1,  RELAY_SENSOR_TYPE, 0 , 5},
+  { DIGITAL_RELAY_ADDR_2,  DIGITAL_RELAY_PIN_2,  RELAY_SENSOR_TYPE, 0 , 5},
+  { DIGITAL_RELAY_ADDR_3,  DIGITAL_RELAY_PIN_3,  RELAY_SENSOR_TYPE, 0 , 5},
+  { DIGITAL_RELAY_ADDR_4,  DIGITAL_RELAY_PIN_4,  RELAY_SENSOR_TYPE, 0 , 5}
 };
 
 device_context_t device_context = { mapping, MAPPING_SIZE, DISCOVERY, 0, 0,
                                     {0xFA, 0xFA, 0xFA, 0xFA, 0xFA}, 
-                                    {0x05, 0x04, 0x03, 0x02, 0x03},
+                                    {0x05, 0x04, 0x03, 0x02, 0x02},
                                     {0xFA, 0xFA, 0xFA, 0xFA, 0xFA},
                                     millis(), millis(), millis(), millis() };
 
