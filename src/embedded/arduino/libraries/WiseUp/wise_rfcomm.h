@@ -25,7 +25,7 @@
 #define DEVICE_PROT_CONNECT_CHK     0x99
 
 /* Sizes */
-#define SENSOR_INFO_DATA_SIZE	    0x3
+#define SENSOR_INFO_DATA_SIZE	    0x5
 #define DEVICE_PROT_CONN_DATA_SIZE  0x1
 #define SENSOR_CMD_DATA_TYPE_SIZE	0x6
 
@@ -46,14 +46,16 @@ struct device_version {
 };
 
 struct rfcomm_sensor_info {
-    uint8_t    sensor_address;
-    uint8_t    sensor_type;
-    uint8_t    sensor_data_len;
+    uint8_t    	sensor_address;
+    uint8_t    	sensor_type;
+	uint16_t	sensor_update_interval;
+    uint8_t    	sensor_data_len;
 };
 
 struct rfcomm_individual_sensor_info {
 	uint8_t 	sensor_address[6];
 	uint8_t		sensor_type;
+	uint16_t	sensor_update_interval;
 	uint8_t		sensor_data_len;
 };
 

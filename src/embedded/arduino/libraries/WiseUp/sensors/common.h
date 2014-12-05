@@ -18,6 +18,7 @@ typedef struct sensor {
   uint8_t   pin;
   uint8_t   type;
   uint16_t  value;
+  uint16_t	sensor_update_interval;
 } sensor_t;
 
 typedef struct device_context_info {

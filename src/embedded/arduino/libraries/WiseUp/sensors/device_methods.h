@@ -24,35 +24,47 @@ send_sensors_data (device_context_t * context, WiseRFComm* network) {
   nrfTXPacket->data_information.data_type      = SENSOR_INFO_DATA_TYPE;
   nrfTXPacket->sender_information.sender_type  = SENDER_SENSOR_LOCAL_HUB;
   
+  uint8_t magic[] = {0xAA, 0xBB};
+  memcpy (&(nrfTXPacket->magic_number), magic, 2);
+  memcpy (nrfTXPacket->sender, context->local_address, 5);
+  memcpy (nrfTXPacket->target, context->server_address, 5);
+  
   uint8_t* data_ptr = NULL;
   sensor_t* sensor_info = NULL;
   for (int i = 0; i < context->mapping_size; i++) {
     sensor_info = &(context->mapping_ptr[i]);
+	
     /* Fill the sensor info fields */
     data_ptr = (uint8_t *)next_sensor_info_slot;
-    next_sensor_info_slot->sensor_address   = sensor_info->address;
-    next_sensor_info_slot->sensor_type      = sensor_info->type;
-    next_sensor_info_slot->sensor_data_len  = 0x1;
+    next_sensor_info_slot->sensor_address   		= sensor_info->address;
+    next_sensor_info_slot->sensor_type      		= sensor_info->type;
+	next_sensor_info_slot->sensor_update_interval 	= sensor_info->sensor_update_interval;
+	next_sensor_info_slot->sensor_data_len  		= 0x1;
     data_ptr += SENSOR_INFO_DATA_SIZE;  
   
-    /* Add to the end of the sensor info fields the sesnsor data */
+    /* Add to the end of the sensor info fields the sensor data */
     *data_ptr = (uint8_t)sensor_info->value;
     data_ptr++;
     
     /* Add the sensor data and info size to the packet info */
     nrfTXPacket->data_information.data_size   += (SENSOR_INFO_DATA_SIZE + next_sensor_info_slot->sensor_data_len);
-
-    /* Set the pointer to the next sensor to be field */
-    next_sensor_info_slot = (rfcomm_sensor_info*)data_ptr; 
+	
+	if (DATA_PACKAGE_SIZE - nrfTXPacket->data_information.data_size < SENSOR_INFO_DATA_SIZE + 1) {
+		network->sendPacket (context->server_address);
+		nrfTXPacket->data_information.data_size = 0;
+		next_sensor_info_slot = (rfcomm_sensor_info *)nrfTXPacket->data_frame.unframeneted.data;
+	} else {
+		/* Set the pointer to the next sensor to be field */
+		next_sensor_info_slot = (rfcomm_sensor_info*)data_ptr;
+	}
   }
   
-  uint8_t magic[] = {0xAA, 0xBB};
-  memcpy (&(nrfTXPacket->magic_number), magic, 2);
-  memcpy (nrfTXPacket->sender, context->local_address, 5);
-  memcpy (nrfTXPacket->target, context->server_address, 5);
-  network->sendPacket (context->server_address);
+  if (nrfTXPacket->data_information.data_size != 0) {
+	network->sendPacket (context->server_address);
+  }
 }
 
+// TODO - Handle the sensor_update_interval and only one sensor can e sent in one packet.
 void
 send_sensors_data_individual (device_context_t * context, WiseRFComm* network, uint8_t* rawSensorData) {
   rfcomm_data* 					  nrfTXPacket = (rfcomm_data *)network->tx_ptr;
@@ -95,11 +107,6 @@ send_discovery (device_context_t * context, WiseRFComm* network) {
   nrfTXPacket->data_information.data_type      = DEVICE_PROT_DATA_TYPE;
   nrfTXPacket->sender_information.sender_type  = SENDER_SENSOR_LOCAL_HUB;
   prot->device_cmd                             = DEVICE_PROT_CONNECT_REQ;
-  
-  Serial.println (sizeof(nrfTXPacket->data_information));
-  Serial.println (nrfTXPacket->data_information.data_size);
-  Serial.println (nrfTXPacket->data_information.data_type);
-  Serial.println (nrfTXPacket->sender_information.sender_type);
   
   uint8_t magic[] = {0xAA, 0xBB};
   memcpy (&(nrfTXPacket->magic_number), magic, 2);
