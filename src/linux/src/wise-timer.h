@@ -12,6 +12,9 @@
 
 class WiseTimer {
     public:
+		WiseTimer (uint64_t interval);
+		~WiseTimer ();
+		
         void setTimer (uint64_t interval) {
             m_interval  = interval;
             m_timestamp = getTimestamp ();
@@ -36,3 +39,12 @@ class WiseTimer {
         uint64_t m_interval;
         uint64_t m_timestamp;
 };
+
+WiseTimer::WiseTimer (uint64_t interval) {
+	m_interval  = interval;
+	m_timestamp = getTimestamp ();
+}
+
+WiseTimer::~WiseTimer () {
+
+}
