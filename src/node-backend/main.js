@@ -1,55 +1,22 @@
 const express = require('express');
+const config = require('configure');
+const ConsoleDebug = require('console-debug');
+var console = new ConsoleDebug(config.console);
+const MongoAdapter = require('./mongo_adapter.js')(console);
+const RedisAdapter = require('./redis_adapter.js')(console);
 
-const LIGHTS = 1;
-const TEMPERATURE = 2;
+var db = new MongoAdapter(config.mongoHost, config.mongoDb);
+var redis = new RedisAdapter(config.sensorChannel, config.redisPort, config.redisHost, config.redisOpt);
 
-var rand = function(max) {
-    return Math.floor(Math.random() * max);
-}
+redis.on(config.sensorChannel, function(msg) {
+    console.log("redis event: " + config.sensorChannel, msg);
+    db.WriteSensorValue(msg);
+});
 
-var Pubsub = function() {
-    this.sensorValues = {};
-    this.listeners = {};
-    this.subscriberId = 0;
-    this.publish = function() {
-        //for each subscriber - notify of the new value of the sensor
-        for (subscriber in this.listeners) {
-            console.log("publish to subscriber " + subscriber);
-            var sid = this.listeners[subscriber].id;
-            if (!this.sensorValues[sid]) {
-                //if this sensor id is requested the first time generate an initial random value
-                this.sensorValues[sid] = rand(100);
-            }
-            this.listeners[subscriber].invoke("{ sid: " + sid + ", value: " + this.sensorValues[sid] + " }");
-        }
-
-        //increment sensor values by random and publish after 2 seconds
-        var self = this;
-        setTimeout(function() {
-            for (k in self.sensorValues) {
-                self.sensorValues[k] += rand(10);
-            }
-            self.publish();
-        }, 2000);
-    };
-    this.subscribe = function(sid, callback) {
-        //subscriberId - subscriber id for use in unsubscribe
-        //id - the sensor to subscribe to
-        //invoke - the callback function
-        this.listeners[this.subscriberId] = {
-            id: sid,
-            invoke: callback
-        };
-        return this.subscriberId++;
-    };
-    this.unsubscribe = function(id) {
-        delete this.listeners[id];
-    };
-    this.publish();
-}
 
 var app = express();
 
+//enable CORS
 app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -64,34 +31,21 @@ app.use('/api', apiRouter);
 app.use('/sse', sseRouter);
 
 apiRouter.route('/').get(function(req, res) {
-    res.end('hello sse - this is the rest api base url');
+    res.end('hello wiseup');
 });
-
-var db = {};
-db.sensors = {
-    1: {
-        id: 1,
-        name: "leaving room lights",
-        type: LIGHTS
-    },
-    2: {
-        id: 2,
-        name: "leaving room temprature",
-        type: TEMPERATURE
-    },
-    3: {
-        id: 3,
-        name: "kitchen lights",
-        type: LIGHTS
-    }
-};
 
 apiRouter.route('/sensors').get(function(req, res) {
-    res.json(db.sensors);
+    db.GetAllSensors(function(err, data) {
+        if (err) {
+            res.status(500).send(err.message);
+        } else {
+            res.json(data);
+        }
+    });
 });
 
-apiRouter.route('/sensors:id').get(function(req, res) {
-    var sensor = db.sensors[req.params.id];
+apiRouter.route('/sensors/:id').get(function(req, res) {
+    var sensor = db.sensors[req.config.id];
     if (sensor) {
         res.json(sensor);
     } else {
@@ -99,11 +53,11 @@ apiRouter.route('/sensors:id').get(function(req, res) {
     }
 });
 
-var pubsub = new Pubsub();
 var msgid = 0;
 
 sseRouter.route('/sensor/:id').get(function(req, res) {
-    console.log("received new listener for sensor id " + req.params.id);
+    var sid = req.params.id;
+    console.log("received new listener for sensor id " + sid);
     req.socket.setTimeout(Infinity);
     res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -111,21 +65,35 @@ sseRouter.route('/sensor/:id').get(function(req, res) {
         'Connection': 'keep-alive'
     });
     res.write('\n');
-    var subid = pubsub.subscribe(req.params.id, function(data) {
-        console.log("received event: " + data + "\n");
+
+    var writeSse = function(d) {
         res.write("id: " + msgid++ +"\n");
-        res.write("data: " + data);
+        res.write("data: " + d);
         res.write("\n\n");
+    }
+
+    redis.GetSensorValue(sid, function(err, data) {
+        if (err) {
+            console.error(err.message);
+        } else {
+            if (data) {
+                console.log("initial sse value from redis " + sid + " " + data);
+                writeSse(data);
+            } else {
+                console.log("sensor value not found in redis: " + sid);
+            }
+        }
     });
+    var onSensorValueUpdate = function(data) {
+        console.log("received sensor value event for id " + sid + ": " + data);
+        writeSse(data);
+    }
+    var subid = redis.on(sid, onSensorValueUpdate);
     req.on("close", function() {
-        pubsub.unsubscribe(subid);
+        redis.removeListener(sid, onSensorValueUpdate);
     });
 });
 
-var server = app.listen(5678, function() {
-    console.log('Listening on port %d', server.address().port);
-});
-
-process.on('uncaughtException', function(err) {
-    console.log(err);
+var server = app.listen(config.serverPort, function() {
+    console.info('Listening on port ' + server.address().port);
 });

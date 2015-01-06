@@ -1,0 +1,10 @@
+{
+    "name": "mock_wiseup",
+    "description": "mock the cpp sensor layer",
+    "version": "0.0.1",
+    "private": true,
+    "dependencies": {
+        "redis": "^0.12.x",
+        "chance": "^0.7.x"
+    }
+}

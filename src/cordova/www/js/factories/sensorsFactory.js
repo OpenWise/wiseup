@@ -4,6 +4,7 @@ angular.module('app').factory('sensorsFactory', function($resource, sensorsServi
     return $resource(serverService.server + 'api/sensors', null, {
         getAll: {
             method: "GET",
+            isArray: true,
             interceptor: {
                 response: function(response) {
                     sensorsService.sensors = response.data;
