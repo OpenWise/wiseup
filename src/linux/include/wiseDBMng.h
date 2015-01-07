@@ -11,7 +11,6 @@
 #include <stdlib.h>
 
 /* includes for wiseup */
-#include "wise_mysql.h"
 #include "wise_rfcomm.hpp"
 #include "wise_ipc.h"
 #include "commonMethods.hpp"
@@ -51,9 +50,6 @@ public:
 	void setSensorAvailability (long long sensorAddress, bool availability);
 	void setHubSensorsAvailability (long long hubAddress, bool availability);
 	void setAllSensorNotConnected ();
-	
-private:
-	MySQL *	m_dbconn;
 };
 
 class WiseDBMng {
@@ -71,9 +67,11 @@ public:
 	void stop ();
 	
 	bool				m_isWorking;
+	bool				m_isNodeJSWorking;
 	sync_context_t		m_lock;
 	WiseDBDAL* 			m_Dal;
 
 private:
 	pthread_t       	m_worker;
+	pthread_t       	m_nodeJSWorker;
 };

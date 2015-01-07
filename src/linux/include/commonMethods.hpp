@@ -54,6 +54,17 @@ typedef struct {
     uint16_t            updateInterval;
 } sensor_info_t;
 
+typedef struct {
+	uint32_t	with_ack 	: 1;
+	uint32_t	reserved 	: 31;
+} nrf24l01_msg_flag_t;
+
+typedef struct {
+    rfcomm_data     	packet;
+    uint64_t    		timestamp;
+	nrf24l01_msg_flag_t	features;		
+} nrf24l01_msg_t;
+
 class CommonMethods {
 public:
     static uint64_t getTimestampMillis () {
@@ -71,15 +82,4 @@ public:
 	    }
 	    printf ("\n");
 	}
-
-    void stdout_msg () {
-        /* Initiate UNIX socket as stdout */
-        /*WiseIPC *ipcSTDOUT = new WiseIPC ("/tmp/wiseup/stdout_pipe");
-        if (ipcSTDOUT->setClient () == SUCCESS) {
-            ipcSTDOUT->setBuffer (wise_stdout_buffer);
-            if (ipcSTDOUT->sendMsg(128) == false) { }
-        }
-
-        delete ipcSTDOUT;*/
-    }
 };

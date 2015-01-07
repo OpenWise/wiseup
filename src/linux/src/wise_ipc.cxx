@@ -88,3 +88,13 @@ WiseIPC::setClient () {
 
     return connect(this->fd_sock, (struct sockaddr*)&this->addr, sizeof(this->addr));
 }
+
+int
+WiseIPC::getUnreadDataLength () {
+	int error;
+	int value = 0;
+	
+	error = ioctl (this->fd_sock, SIOCINQ, &value);
+	
+	return value;
+}

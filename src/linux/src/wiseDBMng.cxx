@@ -9,65 +9,79 @@
 using namespace std;
 
 WiseDBDAL::WiseDBDAL () {
-	struct DBCredentials cred;
-	
-    cred.hostName   = "localhost";
-    cred.userId     = "root";
-    cred.password   = "sql123";
-    cred.database   = "wiseup";
-	
-	m_dbconn = new MySQL();
-    m_dbconn->setupConnection(&cred);
 }
 
 WiseDBDAL::~WiseDBDAL () {
-	delete m_dbconn;
 }
 
 void
 WiseDBDAL::updateSensorInfo (long long sensorAddres, long long hubAddress, uint8_t sensorPort, 
 						uint8_t sensorType, bool availability, uint16_t value, uint16_t updateInterval) {
-	char query[256];
+	/*char query[256];
 	memset (query, 0x0, 256);
 	sprintf (query, "call sp_update_sensor_info ('%lld', '%lld', '%d', '%d', '%d', '%d', '%d')", 
 				sensorAddres, hubAddress, sensorPort, sensorType, (availability == true) ? 1:0, value, updateInterval);
 
-	/* Execute MySQL query */
 	m_dbconn->executeQuery(query);
-	m_dbconn->freeRes();
+	m_dbconn->freeRes();*/
 }
 
 void
 WiseDBDAL::setSensorAvailability (long long sensorAddress, bool availability) {
-	char query[256];
+	/*char query[256];
 	memset (query, 0x0, 256);
 	sprintf (query, "call sp_set_sensor_availability ('%lld', '%d')", sensorAddress, (availability == true) ? 1:0);
 
-	/* Execute MySQL query */
 	m_dbconn->executeQuery(query);
-	m_dbconn->freeRes();
+	m_dbconn->freeRes();*/
 }
 
 void
 WiseDBDAL::setHubSensorsAvailability (long long hubAddress, bool availability) {
-	char query[256];
+	/*char query[256];
 	memset (query, 0x0, 256);
 	sprintf (query, "call sp_set_hub_sensors_availability ('%lld', '%d')", hubAddress, (availability == true) ? 1:0);
 
-	/* Execute MySQL query */
 	m_dbconn->executeQuery(query);
-	m_dbconn->freeRes();
+	m_dbconn->freeRes();*/
 }
 
 void
 WiseDBDAL::setAllSensorNotConnected () {
-	char query[256];
+	/*char query[256];
 	memset (query, 0x0, 256);
 	sprintf (query, "call sp_set_all_sensor_not_connected ()");
 
-	/* Execute MySQL query */
 	m_dbconn->executeQuery(query);
-	m_dbconn->freeRes();
+	m_dbconn->freeRes();*/
+}
+
+void * 
+nodeJSWorker (void * args) {
+	unsigned char buffer[512];
+	WiseIPC *ipcNodeJS = new WiseIPC ("/tmp/wiseup/nodejs_pipe");
+	
+	WiseDBMng* obj 	= (WiseDBMng*)args;
+	int client		= -1;
+	
+	ipcNodeJS->setServer ();
+    ipcNodeJS->setBuffer (buffer);
+	while (obj->m_isNodeJSWorking) {
+		if (client == -1) {
+			client = ipcNodeJS->listenIPC ();
+			printf ("#(wiseDBMng) NODE.JS CONNECTED\n");
+		} else {
+			ssize_t dataLength = read (client, ipcNodeJS->buff, 512);
+			if (dataLength > 0) {
+				printf ("#(wiseDBMng) Data from Node.js (%s)\n", buffer);
+				write(client, buffer, 512);
+			} else if (dataLength < 0) {
+				printf ("#(wiseDBMng) ERROR\n");
+			}
+		}
+	}
+	
+	close (client);
 }
 
 void * 
@@ -199,6 +213,12 @@ dbMngWorker (void * args) {
 
 WiseDBMng::WiseDBMng (WiseDBDAL* db) {
 	m_Dal = db;
+	
+	m_isNodeJSWorking = true;
+	int error = pthread_create(&m_nodeJSWorker, NULL, nodeJSWorker, this);
+    if (error) {
+        exit (-1);
+    }
 }
 
 WiseDBMng::~WiseDBMng () {
@@ -238,7 +258,17 @@ WiseDBMng::apiUpdateSensorsInfo (rfcomm_data * data) {
 
 void
 WiseDBMng::apiUpdateSensorInfo (long long address, uint8_t id, long long hubAddress, uint8_t type, uint16_t value, uint16_t updateInterval) {
-	db_msg_t 			msg;
+	unsigned char messageBuffer[512];
+	WiseIPC *ipcNodeJS = new WiseIPC ("/tmp/wiseup/nodejs_out_pipe");
+	if (ipcNodeJS->setClient () == SUCCESS) {
+		ipcNodeJS->setBuffer(messageBuffer);
+		
+	} else {
+		printf ("#(WiseDBMng) [ERROR] - No available Node.JS service \n");
+	}
+	delete ipcNodeJS;
+	
+	/*db_msg_t 			msg;
 	db_sensor_info_t* 	sensor;
 	WiseIPC 	*ipcDB = new WiseIPC ("/tmp/wiseup/db_pipe");
 	if (ipcDB->setClient () == SUCCESS) {
@@ -257,7 +287,9 @@ WiseDBMng::apiUpdateSensorInfo (long long address, uint8_t id, long long hubAddr
 	} else {
 		printf ("(wise-nrfd) [ERROR] - No available db_pipe \n");
 	}
-	delete ipcDB;
+	delete ipcDB;*/
+	
+	
 }
 
 void

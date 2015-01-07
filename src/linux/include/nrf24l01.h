@@ -13,6 +13,7 @@
 #include <spi.h>
 #include <stdio.h>
 #include <cstring>
+#include <pthread.h>
 
 #include "wise_rfcomm.hpp"
 
@@ -135,6 +136,11 @@ typedef enum {
     NRF_12DBM   = 2,
     NRF_18DBM   = 3,
 } power_t;
+
+typedef struct {
+	pthread_cond_t  cond;
+	pthread_mutex_t mutex;
+} sync_context_t;
 
 /**
  * @brief C++ API for NRF24l01 transceiver module
@@ -416,6 +422,8 @@ class WiseRFComm {
         
 		funcPtrVoidVoid m_DataHandler;
 		funcPtrVoidVoid m_BroadcastHandler;
+		
+		sync_context_t  m_lock;
 };
 
 }

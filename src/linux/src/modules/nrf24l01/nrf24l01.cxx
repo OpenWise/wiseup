@@ -54,6 +54,9 @@ nrfRecieveHandler (void * arg) {
 WiseRFComm::WiseRFComm (NRF24L01 * network, funcPtrVoidVoid dataHandler, funcPtrVoidVoid broadcastHandler) {
 	m_network = network;
 	
+	pthread_cond_init  (&m_lock.cond,  NULL);
+    pthread_mutex_init (&m_lock.mutex, NULL);
+	
 	init ();
 	m_network->dataRecievedHandler = nrfRecieveHandler;
 	m_network->dataContext = this;
@@ -68,17 +71,21 @@ WiseRFComm::WiseRFComm (NRF24L01 * network, funcPtrVoidVoid dataHandler, funcPtr
 }
 
 WiseRFComm::~WiseRFComm () {
+	pthread_mutex_destroy (&m_lock.mutex);
+    pthread_cond_destroy  (&m_lock.cond);
 }
 
 void
 WiseRFComm::sendPacket (uint8_t * target) {
 	rfcomm_data * packet = (rfcomm_data *)m_network->m_txBuffer;
-
+	
+	pthread_mutex_lock (&m_lock.mutex);
 	m_network->configure ();
 	memcpy (packet->target, target, 5);
 	setTarget (target);
 	m_network->send ();
 	m_network->configure ();
+	pthread_mutex_unlock (&m_lock.mutex);
 }
 
 void
@@ -93,12 +100,15 @@ WiseRFComm::clearBufferRX () {
 
 void
 WiseRFComm::setChannel (uint8_t channel) {
+	pthread_mutex_lock (&m_lock.mutex);
 	m_network->setChannel (channel);
+	pthread_mutex_unlock (&m_lock.mutex);
 }
 
 void
 WiseRFComm::setSender (uint8_t * sender) {
 	memcpy (m_sender, sender, 5);
+	// m_network->setSourceAddress (m_sender);
 }
 
 void
@@ -108,13 +118,16 @@ WiseRFComm::setTarget (uint8_t * target) {
 
 void
 WiseRFComm::listenForIncoming () {
+	pthread_mutex_lock (&m_lock.mutex);
 	m_network->pollListener ();
+	pthread_mutex_unlock (&m_lock.mutex);
 	usleep (10000);
 }
 
 void
 WiseRFComm::init () {
 	uint8_t BROADCAST_ADDR[5] = {0xFA, 0xFA, 0xFA, 0xFA, 0xFA};
+	pthread_mutex_lock (&m_lock.mutex);
 	m_network->setSourceAddress         ((uint8_t *) BROADCAST_ADDR);
 	m_network->setDestinationAddress    ((uint8_t *) BROADCAST_ADDR);
 	
@@ -122,6 +135,7 @@ WiseRFComm::init () {
 	m_network->configure ();
 	m_network->setSpeedRate (NRF_250KBPS);
 	m_network->setChannel (99);
+	pthread_mutex_unlock (&m_lock.mutex);
 }
 
 NRF24L01::NRF24L01 (uint8_t cs, uint8_t ce) {
@@ -212,16 +226,23 @@ NRF24L01::send (uint8_t * value) {
             break;
         }
     } // Wait until last paket is send
+	
+	printf ("#(nrf24l01) OUT ( ");
+	for (int i = 0; i < 32; i++) {
+		printf ("%x ", value[i]);
+	} printf (")\n");
 
     ceLow ();
     
     txPowerUp (); // Set to transmitter mode , Power up
     txFlushBuffer ();
 
+	// printf (" !!!!!! ");
     csOn ();
     spi_write (m_spi, W_TX_PAYLOAD); // Write cmd to write payload
     writeBytes (value, NULL, m_payload); // Write payload
     csOff ();
+	// printf (" !!!!!! \n");
 
     ceHigh(); // Start transmission
     
@@ -523,9 +544,11 @@ NRF24L01::writeBytes (uint8_t * dataout, uint8_t * datain, uint8_t len) {
         if (datain != NULL) {
             datain[i] = spi_write (m_spi, dataout[i]);
         } else {
+			// printf ("%x ", dataout[i]);
             spi_write (m_spi, dataout[i]);
         }
     }
+	// printf ("\n");
 }
 
 void

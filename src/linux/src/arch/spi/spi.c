@@ -113,6 +113,9 @@ spi_write(spi_context dev, uint8_t data)
     memset(&msg, 0, sizeof(msg));
 
     uint16_t length = 1;
+	
+	// printf ("%x ", data);
+	usleep (10);
 
     uint8_t recv = 0;
     msg.tx_buf = (unsigned long) &data;

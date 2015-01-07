@@ -6,6 +6,9 @@
 #pragma once
 
 #include <iostream>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <linux/sockios.h>
 #include <sys/un.h>
 
 using namespace std;
@@ -28,6 +31,7 @@ class WiseIPC {
         int  setClient ();
         bool sendMsg (unsigned int len);
         void readMsg (int socket, unsigned int len);
+		int  getUnreadDataLength ();
 
         unsigned char *     buff;
 
