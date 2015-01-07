@@ -28,3 +28,10 @@
 *.app
 
 build/
+
+# nodejs dependencies
+node_modules/
+
+#sublime text editor
+*.sublime-project
+*.sublime-workspace
