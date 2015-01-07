@@ -1,5 +1,5 @@
 'use strict';
 
 angular.module('app').service('serverService', function() {
-    this.server = "http://localhost:8080/"
+    this.server = "http://212.179.225.196/"
 });
