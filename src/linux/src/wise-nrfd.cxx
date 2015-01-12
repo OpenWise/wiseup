@@ -139,10 +139,23 @@ void subCallback(redisAsyncContext *c, void *r, void *priv) {
     if (reply == NULL) return;
     if ( reply->type == REDIS_REPLY_ARRAY && reply->elements == 3 ) {
         if ( strcmp( reply->element[0]->str, "subscribe" ) != 0 ) {
-            printf( "Received[%s] channel %s: %s\n",
-                    (char*)priv,
-                    reply->element[1]->str,
-                    reply->element[2]->str );
+            printf( "Received[%s] channel %s: %s\n", (char*)priv, reply->element[1]->str, reply->element[2]->str );
+			
+			Json::Value root;
+			Json::Reader reader;
+			bool parsingSuccessful = reader.parse( reply->element[2]->str, root );
+			if (!parsingSuccessful) {
+				std::cout  << "Failed to parse configuration\n"
+						   << reader.getFormattedErrorMessages();
+			} else {
+				long long   sensorAddress	= root.get("id", 0).asInt64();
+				int         sensorAction	= root.get("action", 0).asInt();
+				
+				std::cout  	<< "Sensor action request:\n"
+							<< "Address = " << sensorAddress << "\n"
+							<< "Action  = " << sensorAction << "\n";
+				clientHandler->sendSensorCommand (sensorAddress, sensorAction);
+			}
         }
     }
 }

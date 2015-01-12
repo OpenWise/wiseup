@@ -15,9 +15,9 @@ function RedisAdapter(sensorChannel, port, host, options) {
     this.subscribe.on("message", function(channel, message) {
         switch (channel) {
             case sensorChannel:
+                console.log("redis adapter received message from channel: " + channel + " " + message);
                 var j = JSON.parse(message);
                 j.ts = moment().format();
-                console.log("redis adapter received message from channel: " + channel + " " + message);
                 self.client.set(j.id, j.value, function(err, reply) {
                     if (err) {
                         console.error(err.message);
@@ -35,6 +35,10 @@ function RedisAdapter(sensorChannel, port, host, options) {
 
 RedisAdapter.prototype.GetSensorValue = function(sid, callback) {
     this.client.get("" + sid, callback);
+}
+
+RedisAdapter.prototype.Publish = function(channel, data, callback) {
+    this.publish.publish(channel, data);
 }
 
 RedisAdapter.prototype.__proto__ = events.EventEmitter.prototype;

@@ -58,11 +58,14 @@ class WiseClientHandler {
 		
 		void 			setCurrentDataPacket (rfcomm_data* wisePacket);
 		long long		getSensorHubAddress ();
+		long long		getSensorHubAddress (long long sensorAddr);
 		long long		getSensorAddress (rfcomm_sensor_info* sensorInfo);
+		uint8_t			getSensorId (long long sensorAddr);
 
         wise_status_t   registrationCheck (rfcomm_data* wisePacket);
 		void            sendRegistration (rfcomm_data* wisePacket);
 		void			updateSensorInfo (rfcomm_data* wisePacket);
+		void			sendSensorCommand (long long sensorAddr, int cmd);
 		
 		void			addNewClient (uint8_t* address);
         WiseClient*     findClient (uint8_t * address);

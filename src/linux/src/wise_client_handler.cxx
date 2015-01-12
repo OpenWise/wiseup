@@ -38,11 +38,21 @@ WiseClientHandler::getSensorHubAddress () {
 }
 
 long long
+WiseClientHandler::getSensorHubAddress (long long sensorAddr) {
+	return sensorAddr >> 8;
+}
+
+long long
 WiseClientHandler::getSensorAddress (rfcomm_sensor_info* sensorInfo) {
 	long long sensorAddress = 0;
 	memcpy (&sensorAddress, m_currentWisePacket->sender, 5);
 	sensorAddress = (sensorAddress << 8) | sensorInfo->sensor_address;
 	return sensorAddress;
+}
+
+uint8_t
+WiseClientHandler::getSensorId (long long sensorAddr) {
+	return sensorAddr & 0xFF;
 }
 
 void
@@ -71,8 +81,8 @@ WiseClientHandler::updateSensorInfo (rfcomm_data* wisePacket) {
 				rfcomm_sensor_info* sensor_info = (rfcomm_sensor_info *)data_ptr;
 				while (wisePacket->data_information.data_size) {
 					data_ptr += SENSOR_INFO_DATA_SIZE;
-					
-					sprintf (buffer, "PUBLISH SENSOR-INFO {sensor-id:%lld,sensor-hub-id:%lld,sensor-type:%d,sensor-value:%d}", 
+					 
+					sprintf (buffer, "PUBLISH SENSOR-INFO {\"id\":\"%lld\",\"hub\":\"%lld\",\"type\":\"%d\",\"value\":\"%d\"}", 
 																											getSensorAddress (sensor_info),
 																											getSensorHubAddress (),
 																											sensor_info->sensor_type, 
@@ -177,6 +187,55 @@ WiseClientHandler::sendRegistration (rfcomm_data* wisePacketRX) {
         if (ipcPacketsOut->sendMsg(sizeof (nrf24l01_msg_t)) == false) { 
 		} else {
         	printf ("(WiseClientHandler) [sendRegistration] Registration for  [%d %d %d %d %d]\n", 
+                                                wisePacketTX.target[0], wisePacketTX.target[1], 
+                                                wisePacketTX.target[2], wisePacketTX.target[3], 
+                                                wisePacketTX.target[4]);
+        }
+    }
+
+    delete ipcPacketsOut;
+}
+
+void
+WiseClientHandler::sendSensorCommand (long long sensorAddr, int cmd) {
+	long long 	hostAddr = getSensorHubAddress (sensorAddr);
+	uint8_t		sensorId = getSensorId (sensorAddr);
+	
+	printf ("!!!!!!!!!!!!!!!!! %lld, %d, %d\n", hostAddr, sensorId, cmd);
+	
+	uint8_t destination[5] = {0};
+	memcpy (destination, &hostAddr, 5);
+	
+	rfcomm_data wisePacketTX;
+	memset (&wisePacketTX, 0, 32);
+	
+	/* Create pacakge */
+    wisePacketTX.data_information.data_type      = SENSOR_CMD_DATA_TYPE;
+    wisePacketTX.data_information.data_size      = SENSOR_CMD_DATA_TYPE_SIZE;
+    wisePacketTX.control_flags.is_fragmeneted    = 0;
+    wisePacketTX.control_flags.version           = 1;
+    wisePacketTX.control_flags.is_broadcast      = 0;
+    wisePacketTX.control_flags.is_ack            = 0;
+    wisePacketTX.magic_number[0]                 = 0xAA;
+    wisePacketTX.magic_number[1]                 = 0xBB;
+    memcpy (wisePacketTX.sender, local_address, 5);
+    memcpy (wisePacketTX.target, destination, 5);
+	
+    rfcomm_sensor_command* sensorCmd = (rfcomm_sensor_command *)wisePacketTX.data_frame.unframeneted.data;
+	sensorCmd->sensor_address        = sensorId;
+	sensorCmd->command_type          = SENSOR_CMD_RELAY;
+	sensorCmd->command_data[0]       = cmd;
+	
+	nrf24l01_msg_t msg;
+	memcpy (&msg.packet, &wisePacketTX, 32);
+	
+	// Send to OUTGOING queue
+    WiseIPC *ipcPacketsOut = new WiseIPC ("/tmp/wiseup/nrf_outgoing_queue");
+    if (ipcPacketsOut->setClient () == SUCCESS) {
+        ipcPacketsOut->setBuffer((uint8_t *)&msg);
+        if (ipcPacketsOut->sendMsg(sizeof (nrf24l01_msg_t)) == false) { 
+		} else {
+        	printf ("(WiseClientHandler) [sendSensorCommand] Registration for  [%d %d %d %d %d]\n", 
                                                 wisePacketTX.target[0], wisePacketTX.target[1], 
                                                 wisePacketTX.target[2], wisePacketTX.target[3], 
                                                 wisePacketTX.target[4]);

@@ -44,13 +44,11 @@ apiRouter.route('/sensors').get(function(req, res) {
     });
 });
 
-apiRouter.route('/sensors/:id').get(function(req, res) {
-    var sensor = db.sensors[req.config.id];
-    if (sensor) {
-        res.json(sensor);
-    } else {
-        res.status(500).send("no such sensor id");
-    }
+apiRouter.route('/sensors/:id/:action').post(function(req, res) {
+	var data = '{"id":' + req.param('id') + ',"action":' + req.param('action') + '}';
+	console.log(data);
+	redis.Publish ("SENSOR-ACTION", data, function(err, info) {
+	});
 });
 
 var msgid = 0;
