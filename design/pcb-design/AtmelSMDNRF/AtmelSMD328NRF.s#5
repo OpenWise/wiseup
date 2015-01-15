@@ -9498,7 +9498,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <part name="LED1" library="adafruit" deviceset="LED" device="CHIPLED_0805"/>
 <part name="SENS2" library="sparkFun-Connectors" deviceset="M03" device="PTH"/>
 <part name="NRF24" library="con-headers-jp" deviceset="F-2X04-" device="DIL-100"/>
-<part name="5IC3V3" library="sparkFun-PowerIC" deviceset="V_REG_LM1117" device="SOT223"/>
+<part name="IC1" library="sparkFun-PowerIC" deviceset="V_REG_LM1117" device="SOT223"/>
 <part name="C1" library="resistor" deviceset="C-US" device="C0805"/>
 <part name="C2" library="resistor" deviceset="C-US" device="C0805"/>
 <part name="C3" library="resistor" deviceset="C-US" device="C0805"/>
@@ -9553,15 +9553,15 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <instance part="NRF24" gate="G$1" x="83.82" y="104.14" smashed="yes">
 <attribute name="NAME" x="80.01" y="109.982" size="1.778" layer="95"/>
 </instance>
-<instance part="5IC3V3" gate="G$1" x="76.2" y="193.04"/>
+<instance part="IC1" gate="G$1" x="76.2" y="193.04"/>
 <instance part="C1" gate="G$1" x="53.34" y="182.88"/>
 <instance part="C2" gate="G$1" x="60.96" y="182.88"/>
 <instance part="C3" gate="G$1" x="96.52" y="182.88"/>
 <instance part="U$2" gate="G$1" x="53.34" y="195.58" smashed="yes">
 <attribute name="VALUE" x="52.324" y="199.39" size="1.778" layer="96"/>
 </instance>
-<instance part="U$4" gate="G$1" x="96.52" y="203.2" smashed="yes">
-<attribute name="VALUE" x="94.996" y="207.264" size="1.778" layer="96"/>
+<instance part="U$4" gate="G$1" x="96.52" y="205.74" smashed="yes">
+<attribute name="VALUE" x="94.996" y="209.804" size="1.778" layer="96"/>
 </instance>
 <instance part="GND2" gate="1" x="45.72" y="170.18"/>
 <instance part="GND3" gate="1" x="60.96" y="170.18"/>
@@ -9647,7 +9647,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <pinref part="GND3" gate="1" pin="GND"/>
 </segment>
 <segment>
-<pinref part="5IC3V3" gate="G$1" pin="ADJ"/>
+<pinref part="IC1" gate="G$1" pin="ADJ"/>
 <wire x1="76.2" y1="185.42" x2="76.2" y2="172.72" width="0.1524" layer="91"/>
 <pinref part="GND4" gate="1" pin="GND"/>
 </segment>
@@ -9737,11 +9737,11 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <segment>
 <pinref part="C3" gate="G$1" pin="1"/>
 <pinref part="U$4" gate="G$1" pin="+3V3"/>
-<wire x1="96.52" y1="185.42" x2="96.52" y2="193.04" width="0.1524" layer="91"/>
-<pinref part="5IC3V3" gate="G$1" pin="OUT"/>
-<wire x1="96.52" y1="193.04" x2="96.52" y2="203.2" width="0.1524" layer="91"/>
-<wire x1="83.82" y1="193.04" x2="96.52" y2="193.04" width="0.1524" layer="91"/>
-<junction x="96.52" y="193.04"/>
+<wire x1="96.52" y1="185.42" x2="96.52" y2="190.5" width="0.1524" layer="91"/>
+<pinref part="IC1" gate="G$1" pin="OUT@1"/>
+<wire x1="96.52" y1="190.5" x2="96.52" y2="205.74" width="0.1524" layer="91"/>
+<wire x1="83.82" y1="190.5" x2="96.52" y2="190.5" width="0.1524" layer="91"/>
+<junction x="96.52" y="190.5"/>
 </segment>
 <segment>
 <pinref part="NRF24" gate="G$1" pin="2"/>
@@ -9805,7 +9805,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <net name="+5V" class="0">
 <segment>
 <pinref part="J1" gate="G$1" pin="1"/>
-<pinref part="5IC3V3" gate="G$1" pin="IN"/>
+<pinref part="IC1" gate="G$1" pin="IN"/>
 <wire x1="43.18" y1="193.04" x2="53.34" y2="193.04" width="0.1524" layer="91"/>
 <pinref part="C1" gate="G$1" pin="1"/>
 <wire x1="53.34" y1="193.04" x2="60.96" y2="193.04" width="0.1524" layer="91"/>
