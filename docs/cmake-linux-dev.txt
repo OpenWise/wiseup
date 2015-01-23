@@ -1,0 +1,13 @@
+$ cd src/linux
+$ mkdir build; cd build
+$ cmake ..
+$ make
+
+Job done.
+
+Common useful args for cmake:
+
+# use /usr as prefix for make install instead of /usr/local
+-DCMAKE_INSTALL_PREFIX:PATH=/usr
+# compile with -O0 -g
+-DCMAKE_BUILD_TYPE=DEBUG
