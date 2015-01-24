@@ -2,7 +2,7 @@ const redis = require('redis');
 const events = require('events');
 const moment = require('moment');
 var console;
-//{id:1108152157441,hub:4328719365,type:1,value:20}
+//{id:1108152157441,hub:4328719365,addr:X,type:1,value:20}
 function RedisAdapter(sensorChannel, port, host, options) {
     this.subscribe = redis.createClient(port, host, options);
     this.publish = redis.createClient(port, host, options);

@@ -35,7 +35,17 @@ function SqliteAdapter(dbFile) {
 }
 
 SqliteAdapter.prototype.GetAllSensors = function (callback) {
-    callback (null, null);
+    var sql = this.db;
+    sql.serialize(function() {
+        var query = "SELECT SI.sensor_id, SI.sensor_name, SI.sensor_family_type, SD.time_stamp, SD.value, SI.available " +
+                    "FROM  `sensor_info` SI " +
+                    "JOIN `sensor_data` SD ON SI.sensor_id = SD.sensor_id " +
+                    "WHERE SI.available = '1';";
+                    
+        sql.all(query, function(err, rows) {
+            callback (null, rows);
+        });
+    });
 }
 
 SqliteAdapter.prototype.CreateNewSensor = function (sensor) {
@@ -83,10 +93,6 @@ SqliteAdapter.prototype.ArchiveSensorValue = function (sensor) {
         sql.run("INSERT INTO `sensor_data_history` (`record_id`, `sensor_id`, `time_stamp`, `value`) " +
                 "VALUES (NULL," + sensor.id + "," + sensor.ts + "," + sensor.value + ");");
     });
-}
-
-SqliteAdapter.prototype.WriteSensorValue = function(sensor, callback) {
-    callback (null, null);
 }
 
 function SqliteFactory(c) {

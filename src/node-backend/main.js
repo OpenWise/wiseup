@@ -52,8 +52,8 @@ apiRouter.route('/sensors').get(function(req, res) {
 
 apiRouter.route('/sensors/:id/:action').post(function(req, res) {
 	var data = '{"id":' + req.param('id') + ',"action":' + req.param('action') + '}';
-	console.log(data);
-	redis.Publish ("SENSOR-ACTION", data, function(err, info) {
+        console.log(data);
+        redis.Publish ("SENSOR-ACTION", data, function(err, info) {
 	});
 });
 
