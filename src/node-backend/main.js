@@ -2,17 +2,23 @@ const express = require('express');
 const config = require('configure');
 const ConsoleDebug = require('console-debug');
 var console = new ConsoleDebug(config.console);
-const MongoAdapter = require('./mongo_adapter.js')(console);
+// const MongoAdapter = require('./mongo_adapter.js')(console);
+const SqliteAdapter = require('./sqlite_adapter.js')(console);
 const RedisAdapter = require('./redis_adapter.js')(console);
 
-var db = new MongoAdapter(config.mongoHost, config.mongoDb);
+var db = new SqliteAdapter('wiseupdb.db');
 var redis = new RedisAdapter(config.sensorChannel, config.redisPort, config.redisHost, config.redisOpt);
 
-redis.on(config.sensorChannel, function(msg) {
-    console.log("redis event: " + config.sensorChannel, msg);
-    db.WriteSensorValue(msg);
+redis.on(config.sensorChannel, function (sensorData, type) {
+    if (type == "NEW") {
+        // Update Sqlite DB - Create new sensor info row
+        db.CreateNewSensor (sensorData);
+    } else {
+        // Update Sqlite DB - Update sensor info row and create new history row
+        db.UpdateSensorValue (sensorData);
+        db.ArchiveSensorValue (sensorData);
+    }
 });
-
 
 var app = express();
 

@@ -82,9 +82,10 @@ WiseClientHandler::updateSensorInfo (rfcomm_data* wisePacket) {
 				while (wisePacket->data_information.data_size) {
 					data_ptr += SENSOR_INFO_DATA_SIZE;
 					 
-					sprintf (buffer, "PUBLISH SENSOR-INFO {\"id\":\"%lld\",\"hub\":\"%lld\",\"type\":\"%d\",\"value\":\"%d\"}", 
+					sprintf (buffer, "PUBLISH SENSOR-INFO {\"id\":\"%lld\",\"hub\":\"%lld\",\"addr\":\"%d\",\"type\":\"%d\",\"value\":\"%d\"}", 
 																											getSensorAddress (sensor_info),
 																											getSensorHubAddress (),
+                                                                                                            sensor_info->sensor_address,
 																											sensor_info->sensor_type, 
 																											(int)*data_ptr);
 					reply = (redisReply *)redisCommand (m_redisCtx, buffer);

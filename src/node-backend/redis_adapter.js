@@ -8,6 +8,11 @@ function RedisAdapter(sensorChannel, port, host, options) {
     this.publish = redis.createClient(port, host, options);
     this.client = redis.createClient(port, host, options);
     events.EventEmitter.call(this);
+    
+    // Clear REDIS keys
+    this.client.flushdb ( function (err, didSucceed) {
+        console.log("REDIS FLUSHDB - " + didSucceed);
+    });
 
     //this.eventEmitter = new events.EventEmitter();
     this.subscribe.subscribe(sensorChannel);
@@ -15,22 +20,36 @@ function RedisAdapter(sensorChannel, port, host, options) {
     this.subscribe.on("message", function(channel, message) {
         switch (channel) {
             case sensorChannel:
-                console.log("redis adapter received message from channel: " + channel + " " + message);
-                var j = JSON.parse(message);
-                j.ts = moment().format();
-                self.client.set(j.id, j.value, function(err, reply) {
+                console.log("REDIS ADAPTER: {CH:" + channel + ", MSG:" + message + "}");
+                var sensor = JSON.parse(message);
+                sensor.ts = moment().unix();                
+                self.client.get ("" + sensor.id, function (err, data) {
                     if (err) {
                         console.error(err.message);
                     } else {
-                        console.log("OK: redis set " + j.id);
+                        if (data) {
+                            // Check if sensor data was changed
+                            var redisSensor = JSON.parse(data);
+                            if (redisSensor.value == sensor.value) { // Do nothing
+                            } else { // Send Events
+                                self.emit(sensor.id, sensor.value);
+                                self.emit(sensorChannel, sensor, "OLD"); // this.on
+                            }
+                        } else {
+                            self.emit(sensorChannel, sensor, "NEW");
+                        }
+                        
+                        self.client.set (sensor.id, message, function(err, reply) {
+                            if (err) {
+                                console.error(err.message);
+                            }
+                        });
                     }
                 });
-                self.emit(j.id, j.value);
-                self.emit(sensorChannel, j);
                 break;
         }
     });
-    console.info("redis adapter subscribed for channel " + sensorChannel);
+    console.info("REDIS ADAPTER: subscribed for channel " + sensorChannel);
 }
 
 RedisAdapter.prototype.GetSensorValue = function(sid, callback) {
