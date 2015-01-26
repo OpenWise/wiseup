@@ -37,7 +37,7 @@ function SqliteAdapter(dbFile) {
 SqliteAdapter.prototype.GetAllSensors = function (callback) {
     var sql = this.db;
     sql.serialize(function() {
-        var query = "SELECT SI.sensor_id, SI.sensor_name, SI.sensor_family_type, SD.time_stamp, SD.value, SI.available " +
+        var query = "SELECT SI.sensor_id AS id, SI.sensor_hub_address AS hub, SI.sensor_name AS name, SI.sensor_family_type AS type, SD.time_stamp AS ts, SD.value, SI.available " +
                     "FROM  `sensor_info` SI " +
                     "JOIN `sensor_data` SD ON SI.sensor_id = SD.sensor_id " +
                     "WHERE SI.available = '1';";

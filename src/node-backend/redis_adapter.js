@@ -20,8 +20,8 @@ function RedisAdapter(sensorChannel, port, host, options) {
     this.subscribe.on("message", function(channel, message) {
         switch (channel) {
             case sensorChannel:
-                console.log("REDIS ADAPTER: {CH:" + channel + ", MSG:" + message + "}");
                 var sensor = JSON.parse(message);
+                console.log("{CH:" + channel + ", id:" + sensor.id + ", value: " + sensor.value + "}");
                 sensor.ts = moment().unix();                
                 self.client.get ("" + sensor.id, function (err, data) {
                     if (err) {
@@ -30,6 +30,7 @@ function RedisAdapter(sensorChannel, port, host, options) {
                         if (data) {
                             // Check if sensor data was changed
                             var redisSensor = JSON.parse(data);
+                            // console.log("{OLD: " + redisSensor.value + ", NEW: " + sensor.value + "}");
                             if (redisSensor.value == sensor.value) { // Do nothing
                             } else { // Send Events
                                 self.emit(sensor.id, sensor.value);

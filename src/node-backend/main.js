@@ -13,11 +13,13 @@ redis.on(config.sensorChannel, function (sensorData, type) {
     if (type == "NEW") {
         // Update Sqlite DB - Create new sensor info row
         db.CreateNewSensor (sensorData);
-    } else {
-        // Update Sqlite DB - Update sensor info row and create new history row
         db.UpdateSensorValue (sensorData);
         db.ArchiveSensorValue (sensorData);
     }
+    
+    // Update Sqlite DB - Update sensor info row and create new history row
+    db.UpdateSensorValue (sensorData);
+    db.ArchiveSensorValue (sensorData);
 });
 
 var app = express();
