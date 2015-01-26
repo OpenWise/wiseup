@@ -84,7 +84,8 @@ sseRouter.route('/sensor/:id').get(function(req, res) {
         } else {
             if (data) {
                 console.log("initial sse value from redis " + sid + " " + data);
-                writeSse(data);
+                var sensor = JSON.parse(data);
+                writeSse(sensor.value);
             } else {
                 console.log("sensor value not found in redis: " + sid);
             }
