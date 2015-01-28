@@ -21,9 +21,11 @@
 using namespace std;
 
 typedef enum {
-    DISCOVERY       =   0,
-    CONNECTED       =   1,
-    UNKNOWN         =   99
+    DISCOVERY                               = 0,
+    CONNECTED                               = 1,
+    SENSOR_INFO_NO_AUTH_UNREGISTERED_DEVICE = 2,
+    SENSOR_INFO_NO_AUTH_REGISTERED_DEVICE   = 3,
+    UNKNOWN                                 = 99
 } wise_status_t;
 
 class WiseClient {

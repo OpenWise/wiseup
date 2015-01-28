@@ -11,9 +11,10 @@
 #define RFCOMM_VERSION 			    0x1
 
 /* Data type */
-#define SENSOR_INFO_DATA_TYPE	    0x1
-#define SENSOR_CMD_DATA_TYPE	    0x2
-#define DEVICE_PROT_DATA_TYPE	    0x3
+#define SENSOR_INFO_DATA_NO_AUTH_TYPE   0x0
+#define SENSOR_INFO_DATA_TYPE	        0x1
+#define SENSOR_CMD_DATA_TYPE	        0x2
+#define DEVICE_PROT_DATA_TYPE	        0x3
 
 /* Sensor command type */
 #define SENSOR_CMD_RELAY		    0x1

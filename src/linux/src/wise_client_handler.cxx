@@ -139,6 +139,17 @@ WiseClientHandler::registrationCheck (rfcomm_data* wisePacket) {
                 return DISCOVERY;
             }
         }
+    } else if (wisePacket->data_information.data_type == SENSOR_INFO_DATA_NO_AUTH_TYPE) {
+        if (device != NULL) {
+            device->timestamp = (uint64_t)time(NULL);
+            printf ("(WiseClientHandler) [registrationCheck] SENSOR DATA UNREGISTERED [%d %d %d %d %d]\n",
+														wisePacket->sender[0], wisePacket->sender[1], 
+														wisePacket->sender[2], wisePacket->sender[3], 
+														wisePacket->sender[4]);
+            return SENSOR_INFO_NO_AUTH_REGISTERED_DEVICE;
+        }
+        
+        return SENSOR_INFO_NO_AUTH_UNREGISTERED_DEVICE;
     } else {
         if (device != NULL) {
             device->timestamp = (uint64_t)time(NULL);

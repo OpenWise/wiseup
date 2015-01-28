@@ -61,6 +61,13 @@ dataHandling (rfcomm_data * packet) {
 		clientHandler->updateSensorInfo (packet); // Update the sensors info
         cmdHandler->commandHandler (packet); // Execute the requested command
 		printf ("(wise-nrfd) [dataHandling] UPDATE INFO \n");
+    } else if (deviceStatus == SENSOR_INFO_NO_AUTH_REGISTERED_DEVICE) {
+        clientHandler->updateSensorInfo (packet); // Update the sensors info
+		printf ("(wise-nrfd) [dataHandling] UPDATE INFO UNREGISTERED\n");
+    } else if (deviceStatus == SENSOR_INFO_NO_AUTH_UNREGISTERED_DEVICE) {
+        clientHandler->addNewClient (packet->sender); // Add new client to local DB
+        clientHandler->updateSensorInfo (packet); // Update the sensors info
+		printf ("(wise-nrfd) [dataHandling] NEW/UPDATE INFO UNREGISTERED\n");
     } else if (deviceStatus == UNKNOWN) { }
 
     deviceScreenCtx.rxPacketCount++;
