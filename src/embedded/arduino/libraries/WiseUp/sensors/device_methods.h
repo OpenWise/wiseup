@@ -10,7 +10,7 @@
 #include "common.h"
 
 void
-send_sensors_data (device_context_t * context, WiseRFComm* network) {
+_send_sensors_data (device_context_t * context, WiseRFComm* network, uint8_t data_type) {
   rfcomm_data*         nrfTXPacket           = (rfcomm_data *)network->tx_ptr;
   rfcomm_sensor_info*  next_sensor_info_slot = (rfcomm_sensor_info *)nrfTXPacket->data_frame.unframeneted.data;
   
@@ -21,7 +21,7 @@ send_sensors_data (device_context_t * context, WiseRFComm* network) {
   nrfTXPacket->control_flags.is_fragmeneted    = NO;
   nrfTXPacket->control_flags.version	       = RFCOMM_VERSION;
   nrfTXPacket->control_flags.is_broadcast      = NO;
-  nrfTXPacket->data_information.data_type      = SENSOR_INFO_DATA_TYPE;
+  nrfTXPacket->data_information.data_type      = data_type;
   nrfTXPacket->sender_information.sender_type  = SENDER_SENSOR_LOCAL_HUB;
   
   uint8_t magic[] = {0xAA, 0xBB};
@@ -63,6 +63,17 @@ send_sensors_data (device_context_t * context, WiseRFComm* network) {
 	network->sendPacket (context->server_address);
   }
 }
+
+void
+send_sensors_data (device_context_t * context, WiseRFComm* network) {
+    _send_sensors_data (context, network, SENSOR_INFO_DATA_TYPE);
+}
+
+void
+send_sensors_data_no_auth (device_context_t * context, WiseRFComm* network) {
+    _send_sensors_data (context, network, SENSOR_INFO_DATA_NO_AUTH_TYPE);
+}
+
 
 // TODO - Handle the sensor_update_interval and only one sensor can e sent in one packet.
 void
