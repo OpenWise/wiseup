@@ -29,6 +29,8 @@
 
 build/
 
+src/cordova/platforms/
+
 # nodejs dependencies
 node_modules/
 
