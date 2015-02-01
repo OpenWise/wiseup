@@ -4,6 +4,11 @@ angular.module('app').controller('sensorsController', function($scope, sensorsFa
 
     $scope.data = sensorsService;
 
+    $scope.s = {
+        name: "sensy",
+        value: 2
+    }
+
     var eventSourceCallback = function(idx) {
         return function(event) {
             $scope.data.sensors[idx].value = event.data;

@@ -24,14 +24,36 @@
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-tap-highlight" content="no" />
     <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
-    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
-    <title>Hello World</title>
+    <!-- <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" /> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/pure-min.css">
+    <!--[if lte IE 8]>
+    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/grids-responsive-old-ie-min.css">
+    <![endif]-->
+    <!--[if gt IE 8]><!-->
+    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/grids-responsive-min.css">
+    <!--<![endif]-->
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/wiseup.css">
+    <link rel="stylesheet" href="css/sensor.css">
+    <title>Wiseup</title>
 </head>
 
 <body>
-    <h1>WiseUp</h1>
-    <div ng-view>
-
+    <div ng-view class="content">
+    </div>
+    <div class="footer">
+        <div class="footer-dktop">
+            <div class="pure-g">
+                <div class="pure-u-1-3"><a href="#/sensors" class="menu-button"><i class="fa fa-bullseye"></i></a>
+                </div>
+                <div class="pure-u-1-3"><a href="#/dashboard" class="menu-button"><i class="fa fa-dashboard"></i></a>
+                </div>
+                <div class="pure-u-1-3"><a href="#/widgets" class="menu-button"><i class="fa fa-magic"></i></a>
+                </div>
+            </div>
+        </div>
     </div>
     <script type="text/javascript" src="cordova.js"></script>
     <script type="text/javascript" src="js/angular/angular.min.js"></script>
@@ -44,6 +66,8 @@
     <script type="text/javascript" src="js/services/serverService.js"></script>
     <!--factories-->
     <script type="text/javascript" src="js/factories/sensorsFactory.js"></script>
+    <!-- directives -->
+    <script type="text/javascript" src="js/directives/sensor.js"></script>
     <!--controllers-->
     <script type="text/javascript" src="js/controllers/sensorsController.js"></script>
 </body>

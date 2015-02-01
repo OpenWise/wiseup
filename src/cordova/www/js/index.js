@@ -8,6 +8,13 @@ app.config(['$routeProvider',
             .when('/', {
                 templateUrl: "/views/sensors.html",
                 controller: 'sensorsController'
+            }).when('/sensors', {
+                templateUrl: "/views/sensors.html",
+                controller: 'sensorsController'
+            }).when('/dashboard', {
+                templateUrl: "/views/dashboard.html"
+            }).when('/widgets', {
+                templateUrl: "/views/widgets.html"
             })
             .otherwise({
                 redirectTo: '/'

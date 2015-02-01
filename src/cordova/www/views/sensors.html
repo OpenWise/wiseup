@@ -1,18 +1,4 @@
-<table>
-    <thead>
-        <tr>
-            <th>sensor id</th>
-            <th>hub id</th>
-            <th>type</th>
-            <th>value</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr ng-repeat="sensor in data.sensors">
-            <td>{{sensor.id}}</td>
-            <td>{{sensor.hub}}</td>
-            <td>{{sensor.type}}</td>
-            <td>{{sensor.value}}</td>
-        </tr>
-    </tbody>
-</table>
+<div class="pure-g">
+    <sensor ng-repeat="sensor in data.sensors" data="sensor">
+    </sensor>
+</div>
