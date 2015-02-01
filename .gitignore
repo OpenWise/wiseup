@@ -29,11 +29,31 @@
 
 build/
 
-src/cordova/platforms/
+###cordova ignores:
 
-# nodejs dependencies
+# built application files
+*.apk
+*.ap_
+
+# files for the dex VM
+*.dex
+
+# Java class files
+*.class
+
+# generated files - android project subfolder
+Android/bin/
+Android/gen/
+Android/assets/
+
+# generated files
+bin/
+gen/
+
+
+### nodejs dependencies
 node_modules/
 
-#sublime text editor
+### sublime text editor
 *.sublime-project
 *.sublime-workspace
