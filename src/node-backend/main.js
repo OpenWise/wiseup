@@ -9,17 +9,17 @@ const RedisAdapter = require('./redis_adapter.js')(console);
 var db = new SqliteAdapter('wiseupdb.db');
 var redis = new RedisAdapter(config.sensorChannel, config.redisPort, config.redisHost, config.redisOpt);
 
-redis.on(config.sensorChannel, function (sensorData, type) {
+redis.on(config.sensorChannel, function(sensorData, type) {
     if (type == "NEW") {
         // Update Sqlite DB - Create new sensor info row
-        db.CreateNewSensor (sensorData);
-        db.UpdateSensorValue (sensorData);
-        db.ArchiveSensorValue (sensorData);
+        db.CreateNewSensor(sensorData);
+        db.UpdateSensorValue(sensorData);
+        db.ArchiveSensorValue(sensorData);
     }
-    
+
     // Update Sqlite DB - Update sensor info row and create new history row
-    db.UpdateSensorValue (sensorData);
-    db.ArchiveSensorValue (sensorData);
+    db.UpdateSensorValue(sensorData);
+    db.ArchiveSensorValue(sensorData);
 });
 
 var app = express();
@@ -53,10 +53,14 @@ apiRouter.route('/sensors').get(function(req, res) {
 });
 
 apiRouter.route('/sensors/:id/:action').post(function(req, res) {
-	var data = '{"id":' + req.param('id') + ',"action":' + req.param('action') + '}';
-        console.log(data);
-        redis.Publish ("SENSOR-ACTION", data, function(err, info) {
-	});
+    var data = {
+        id: req.param('id'),
+        action: req.param('action')
+    };
+    //var data = '{"id":' + req.param('id') + ',"action":' + req.param('action') + '}';
+    console.log(data);
+    redis.Publish("SENSOR-ACTION", data, function(err, info) {}); //TODO error handling
+    res.end('ok');
 });
 
 var msgid = 0;
