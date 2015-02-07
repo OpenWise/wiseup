@@ -2,12 +2,12 @@ EAGLE AutoRouter Statistics:
 
 Job           : /Users/ykiveish/Documents/eagle/5v-switch-sensor/5v-switch-sensor.brd
 
-Start at      : 15:28:22 (2/6/15)
-End at        : 15:28:28 (2/6/15)
+Start at      : 14:54:35 (2/7/15)
+End at        : 14:54:39 (2/7/15)
 Elapsed time  : 00:00:00
 
 Signals       :    28   RoutingGrid: 25 mil  Layers: 2
-Connections   :    71   predefined:  67 ( 11 Vias )
+Connections   :    71   predefined:  70 ( 11 Vias )
 
 Router memory :   35640
 
@@ -18,8 +18,8 @@ Number of Ripups  :         0         0         0         0         0         0
 max. Level        :         0         0         0         0         0         0
 max. Total        :         0         0         0         0         0         0
 
-Routed            :         0         4         4         4         4         4
-Vias              :         0         2         0         0         0         0
-Resolution        :    94.4 %   100.0 %   100.0 %   100.0 %   100.0 %   100.0 %
+Routed            :         0         1         1         1         1         1
+Vias              :         0         0         0         0         0         0
+Resolution        :    98.6 %   100.0 %   100.0 %   100.0 %   100.0 %   100.0 %
 
 Final             : 100.0% finished
