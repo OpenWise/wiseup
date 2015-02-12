@@ -1,14 +1,14 @@
 {
-    "name": "wiseup",
-    "description": "wiseup - smart home automation",
-    "version": "0.0.1",
-    "private": true,
-    "dependencies": {
-        "express": "^4.x",
-        "mongodb": "^1.4.x",
-        "redis": "^0.12.x",
-        "configure": "^0.0.1",
-        "moment": "^2.8.x",
-        "console-debug": "^0.2.x"
-    }
+  "name": "wiseup",
+  "description": "wiseup - smart home automation",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "configure": "^0.0.1",
+    "console-debug": "^0.2.x",
+    "express": "^4.11.2",
+    "moment": "^2.8.x",
+    "redis": "^0.12.x",
+    "sqlite3": "^3.0.4"
+  }
 }

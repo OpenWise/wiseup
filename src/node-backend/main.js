@@ -52,14 +52,16 @@ apiRouter.route('/sensors').get(function(req, res) {
     });
 });
 
-apiRouter.route('/sensors/:id/:action').post(function(req, res) {
-    var data = {
+// TODO - Change to POST request.
+apiRouter.route('/sensors/:id/:action').get(function(req, res) {
+    var data_t = {
         id: req.param('id'),
         action: req.param('action')
     };
-    //var data = '{"id":' + req.param('id') + ',"action":' + req.param('action') + '}';
+    var data = '{"id":' + req.param('id') + ',"action":' + req.param('action') + '}';
     console.log(data);
-    redis.Publish("SENSOR-ACTION", data, function(err, info) {}); //TODO error handling
+    console.log(data_t);
+    redis.Publish("SENSOR-ACTION", data, function(err, info) {}); // TODO error handling
     res.end('ok');
 });
 

@@ -1,6 +1,6 @@
-<div class="pure-u-1-2 pure-u-md-1-4 pure-u-lg-1-6">
+<div class="pure-u-1-2 pure-u-md-1-4 pure-u-lg-1-7">
     <div class="sensor">
-        <i class="sensor-icon fa fa-5x" ng-class="{ 'fa-folder': data.type == 1, 'fa-globe': data.type == 2, 'fa-glass': data.type == 3, 'fa-circle': data.type == 4 }"></i>
+        <i class="sensor-icon fa fa-5x" ng-click="onClickSensor(data.type)" ng-class="{ 'fa-folder': data.type == 1, 'fa-globe': data.type == 2, 'fa-glass': data.type == 3, 'fa-circle': data.type == 4 }"></i>
         <div class="sensor-name">{{data.id}}</div>
         <div class="sensor-value">{{data.value}}</div>
         <i class="sensor-fav fa fa-2x" ng-class="data.favorite ? 'fa-star' : 'fa-star-o'"></i>

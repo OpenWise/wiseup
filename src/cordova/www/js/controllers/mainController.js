@@ -4,7 +4,7 @@ angular.module('app').controller('mainController', function($scope, $http, cordo
     $scope.ready = false;
     $scope.isCordovaApp = undefined;
     $scope.sensor1 = "no data yet";
-
+    
     cordovaService.ready.then(
         function resolved(resp) {
             $scope.isCordovaApp = true;
@@ -15,6 +15,8 @@ angular.module('app').controller('mainController', function($scope, $http, cordo
             $scope.ready = true;
         }
     );
+    
+    
 
     // var source = new EventSource("http://10.100.102.9:5678/sse/sensor/1");
 
