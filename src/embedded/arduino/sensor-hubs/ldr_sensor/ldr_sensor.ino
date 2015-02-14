@@ -11,15 +11,11 @@
 #define DISCOVERY_MODE_INTERVAL		                  120000
 #define DISCOVERY_MODE_TIMEOUT                            5000
 #define CONNECTED_MODE_READ_SENSORS_INTERVAL              1000
-#define CONNECTED_MODE_READ_SENSORS_AS_KEEPALIVE_INTERVAL 5000
+#define CONNECTED_MODE_READ_SENSORS_AS_KEEPALIVE_INTERVAL 30000
 
-#define DIGITAL_RELAY_ADDR_1    1
-#define DIGITAL_RELAY_ADDR_2    2
-#define DIGITAL_RELAY_ADDR_3    3
-
-#define DIGITAL_RELAY_PIN_1     5
-#define DIGITAL_RELAY_PIN_2     6
-#define DIGITAL_RELAY_PIN_3     7
+#define ANALOG_LDR_ADDR             1
+#define ANALOG_LDR_PIN              1
+uint16_t  last_value = 0;
 
 uint8_t rx[32];
 uint8_t tx[32];
@@ -33,22 +29,20 @@ rfcomm_data*   		nrfTXPacket 		  = NULL;
 rfcomm_device_prot*     prot                      = NULL;
 rfcomm_sensor_info*	next_sensor_info_slot 	  = NULL;
 
-#define MAPPING_SIZE    3
+#define MAPPING_SIZE    1
 sensor_t mapping[] = {
-  { DIGITAL_RELAY_ADDR_1,  DIGITAL_RELAY_PIN_1,  RELAY_SENSOR_TYPE, 0 , 5},
-  { DIGITAL_RELAY_ADDR_2,  DIGITAL_RELAY_PIN_2,  RELAY_SENSOR_TYPE, 0 , 5},
-  { DIGITAL_RELAY_ADDR_3,  DIGITAL_RELAY_PIN_3,  RELAY_SENSOR_TYPE, 0 , 5}
+  { ANALOG_LDR_ADDR, ANALOG_LDR_PIN, LUMINANCE_SENSOR_TYPE, 0, 30 }
 };
 
 device_context_t device_context = { mapping, MAPPING_SIZE, DISCOVERY, 0, 0,
                                     {0xFA, 0xFA, 0xFA, 0xFA, 0xFA}, 
-                                    {0x05, 0x04, 0x03, 0x02, 0x02},
+                                    {0x05, 0x04, 0x03, 0x02, 0x01},
                                     {0xFA, 0xFA, 0xFA, 0xFA, 0xFA},
                                     millis(), millis(), millis(), millis() };
 
 void
 network_layer_broadcast_arrived_handler () {
-  Serial.println ("(LED_CUBE)# Broadcast data [NULL]");
+  Serial.println ("(LDR)# Broadcast data [NULL]");
 }
 
 void
@@ -72,11 +66,7 @@ void setup () {
   nrfRXPacket = (rfcomm_data *)net->rx_ptr;
   nrfTXPacket = (rfcomm_data *)net->tx_ptr;
   
-  pinMode (device_context.mapping_ptr[DIGITAL_RELAY_ADDR_1 - 1].pin, OUTPUT);
-  pinMode (device_context.mapping_ptr[DIGITAL_RELAY_ADDR_2 - 1].pin, OUTPUT);
-  pinMode (device_context.mapping_ptr[DIGITAL_RELAY_ADDR_3 - 1].pin, OUTPUT);
-
-  Serial.println("(LED_CUBE)# Initialized...");
+  Serial.println("(LDR)# Initialized...");
 }
 
 void loop () {
@@ -84,7 +74,7 @@ void loop () {
   
   // Change to DISCOVERY mode
   if (abs (millis () - device_context.discovery_interval) > DISCOVERY_MODE_INTERVAL) {
-    Serial.println ("(LED_CUBE)# Change MODE (DISCOVERY)");
+    Serial.println ("(LDR)# Change MODE (DISCOVERY)");
     device_context.state = DISCOVERY;
     device_context.discovery_interval = millis ();
   }
@@ -93,7 +83,7 @@ void loop () {
   switch (device_context.state) {
     case DISCOVERY:
       if (abs (millis () - device_context.discovery_timeout) > DISCOVERY_MODE_TIMEOUT) {
-        Serial.println ("(LED_CUBE)# DISCOVERY");
+        Serial.println ("(LDR)# DISCOVERY");
         device_context.state = DISCOVERY;
         memcpy (device_context.server_address, device_context.broadcast_address, 5);
         // Send DISCOVERY packet
@@ -104,19 +94,17 @@ void loop () {
     case CONNECTED:
       // Read sensors data each second
       if (abs (millis () - device_context.connected_read_sensors_interval) > CONNECTED_MODE_READ_SENSORS_INTERVAL) {
-        Serial.println ("(LED_CUBE)# CONNECTED");
-        device_context.mapping_ptr[DIGITAL_RELAY_ADDR_1 - 1].value = 
-                  (uint16_t) read_digital_relay_info (device_context.mapping_ptr[DIGITAL_RELAY_ADDR_1 - 1].pin);
-          
-        device_context.mapping_ptr[DIGITAL_RELAY_ADDR_2 - 1].value = 
-                  (uint16_t) read_digital_relay_info (device_context.mapping_ptr[DIGITAL_RELAY_ADDR_2 - 1].pin);
-        
-        device_context.mapping_ptr[DIGITAL_RELAY_ADDR_3 - 1].value = 
-                  (uint16_t) read_digital_relay_info (device_context.mapping_ptr[DIGITAL_RELAY_ADDR_3 - 1].pin);
-
+        Serial.println ("(LDR)# CONNECTED");
+        device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value = 30 +
+                  data_noise_reduse( device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value,
+                                    (uint16_t) read_analog_luminance_info (device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].pin, YES), 2);
+        device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value = 
+                  (device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value < 100) ? device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value : 100;
+                  
         // Check for changes
-        device_context.is_sync = check_sensors_change (&device_context);
+        device_context.is_sync = check_sensors_change (&device_context) && ((abs(last_value - device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value) > 4) ? 0x1 : 0x0);
         device_context.connected_read_sensors_interval = millis ();
+        last_value = device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value;
       }
       
       if (abs (millis () - device_context.connected_read_sensors_as_keepalive_interval) > CONNECTED_MODE_READ_SENSORS_AS_KEEPALIVE_INTERVAL) {
@@ -129,14 +117,11 @@ void loop () {
         send_sensors_data (&device_context, net);
         device_context.is_sync = NO;
         
-        Serial.print ("(LED_CUBE)# Sensors : ");
-        Serial.print ((uint8_t)device_context.mapping_ptr[DIGITAL_RELAY_ADDR_1 - 1].value);
-        Serial.print (" ");
-        Serial.print ((uint8_t)device_context.mapping_ptr[DIGITAL_RELAY_ADDR_2 - 1].value);
-        Serial.print (" ");
-        Serial.println ((uint8_t)device_context.mapping_ptr[DIGITAL_RELAY_ADDR_3 - 1].value);
+        Serial.print ("(LDR)# Value : ");
+        Serial.println ((uint8_t)device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value);
       }
     break;
   }
 }
+
 

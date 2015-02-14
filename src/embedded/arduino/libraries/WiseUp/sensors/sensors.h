@@ -35,7 +35,7 @@ read_digital_temperature_info (DallasTemperature * sensors) {
 }
 
 float 
-read_analog_luminance_info (uint8_t pin) {
+read_analog_luminance_info (uint8_t pin, uint8_t inverse) {
   int   lumSum     = 0;
   float luminance  = 0;
   int   i;
@@ -47,6 +47,10 @@ read_analog_luminance_info (uint8_t pin) {
 
   luminance = (lumSum * 0.48828125) / 3;
   luminance = (luminance / 512) * 100;
+  
+  if (inverse) {
+	luminance = 100 - luminance;
+  }
 
   return luminance;
 }
