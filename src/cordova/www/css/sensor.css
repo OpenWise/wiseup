@@ -1,7 +1,7 @@
 .sensor {
     margin: 3px;
     display: block;
-    height: 250px;
+    height: 100px;
     border-style: solid;
     border-color: #333333;
     border-width: 2px;
@@ -9,20 +9,22 @@
     position: relative;
 }
 .sensor-icon {
-    position: absolute;
-    top: 5px;
-    left: 5px;
+	
+}
+.sensor-data {
+}
+.sensor-data-top {
+	
+}
+.sensor-data-bottom {
+	
 }
 .sensor-value {
-    position: absolute;
-    left: 100px;
-    top: 15px;
     font-size: 50px;
 }
 .sensor-fav {
     position: absolute;
-    top: 80px;
-    left: 10px;
+	
 }
 .sensor-settings {
     position: absolute;
@@ -30,8 +32,8 @@
     left: 40px;
 }
 .sensor-name {
-    position: absolute;
-    top: 120px;
-    left: 10px;
+    font-size: 20px
+}
+.sensor-switch {
     font-size: 20px
 }

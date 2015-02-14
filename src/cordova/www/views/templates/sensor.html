@@ -1,9 +1,26 @@
-<div class="pure-u-1-2 pure-u-md-1-4 pure-u-lg-1-7">
-    <div class="sensor">
-        <i class="sensor-icon fa fa-5x" ng-click="onClickSensor(data.type)" ng-class="{ 'fa-folder': data.type == 1, 'fa-globe': data.type == 2, 'fa-glass': data.type == 3, 'fa-circle': data.type == 4 }"></i>
-        <div class="sensor-name">{{data.id}}</div>
-        <div class="sensor-value">{{data.value}}</div>
-        <i class="sensor-fav fa fa-2x" ng-class="data.favorite ? 'fa-star' : 'fa-star-o'"></i>
-        <i class="sensor-settings fa fa-2x fa-gear"></i>
+<div class="pure-u-1-1 pure-u-md-1-2 pure-u-lg-1-4">
+    <div class="sensor pure-g">
+        <div class="sensor-icon pure-u-1-4">
+			<i class="fa fa-5x" style="position:absolute; top:15px; left:15px; color:{{sensor.state}}" ng-click="onClickSensor(data.type)" ng-class="{ 'fa-folder': data.type == 1, 'fa-globe': data.type == 2, 'fa-glass': data.type == 3, 'fa-power-off': data.type == 4 }"></i>
+		</div>
+		<div class="sensor-data pure-u-3-4">
+			<div class="pure-g">
+				<div class="sensor-name pure-u-1-1">{{data.id}}</div>
+				<div class="pure-u-1-1">
+					<div class="pure-g">
+						<div class="pure-u-1-2">
+							<!-- <button class="sensor-switch pure-button" ng-click="onClickSensor(data.type)">{{data.value}}</button> -->
+							<button toggle-button sensor-id="{{data.id}}" active-text="On" inactive-text="Off" ng-model="sensor.state"></button>
+						</div>
+						<div class="sensor-value pure-u-1-2">{{data.value}}</div>
+						<!-- <div class="pure-u-1-3">
+							<button class="sensor-fav pure-button">
+								<i class="fa fa-1x" ng-class="data.favorite ? 'fa-star' : 'fa-star-o'"></i>
+							</button>
+						</div> -->
+					</div>
+				</div>
+			</div>
+		</div>
     </div>
 </div>
