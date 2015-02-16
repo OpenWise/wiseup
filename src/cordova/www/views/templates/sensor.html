@@ -5,12 +5,11 @@
 		</div>
 		<div class="sensor-data pure-u-3-4">
 			<div class="pure-g">
-				<div class="sensor-name pure-u-1-1">{{data.id}}</div>
+				<div class="sensor-name pure-u-1-1">{{data.name}}</div>
 				<div class="pure-u-1-1">
 					<div class="pure-g">
-						<div class="pure-u-1-2">
-							<!-- <button class="sensor-switch pure-button" ng-click="onClickSensor(data.type)">{{data.value}}</button> -->
-							<button toggle-button sensor-id="{{data.id}}" active-text="On" inactive-text="Off" ng-model="sensor.state"></button>
+						<div class="sensor-action pure-u-1-2">
+							<button toggle-button sensor-id="{{data.id}}" sensor-val="{{data.value}}" active-text="On" inactive-text="Off" ng-model="sensor.state"></button>
 						</div>
 						<div class="sensor-value pure-u-1-2">{{data.value}}</div>
 						<!-- <div class="pure-u-1-3">

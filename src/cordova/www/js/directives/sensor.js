@@ -30,6 +30,21 @@ angular.module('app').directive('sensor', function($http) {
                     break;
                 }
             }
+            
+            switch (scope.data.type) {
+                case TEMPERATURE_TYPE:
+                    angular.element(element[0].querySelector('.sensor-action')).html("");
+                break;
+                case LUMINANCE_TYPE:
+                    angular.element(element[0].querySelector('.sensor-action')).html("");
+                break;
+                case MOVEMENT_TYPE:
+                    angular.element(element[0].querySelector('.sensor-action')).html("");
+                break;
+                case SWITCH_TYPE:
+                    angular.element(element[0].querySelector('.sensor-value')).html("");
+                break;
+            }
         }
     }
     
@@ -50,6 +65,7 @@ angular.module('app').directive('toggleButton', function($http) {
 		require: 'ngModel',
 		scope: {
 			sensorId: '@sensorId',
+            sensorVal: '@sensorVal',
 			activeText: '@activeText',
 			inactiveText: '@inactiveText',
 			sensorState: '=ngModel'
@@ -67,11 +83,7 @@ angular.module('app').directive('toggleButton', function($http) {
 				color: "BLACK",
 				toggle: function() {
 					this.value = !this.value;
-					if (this.color == "BLACK") {
-						this.color = "RED";
-					} else {
-						this.color = "BLACK";
-					}
+                    this.color = (this.color == "BLACK") ? "RED" : "BLACK";
 					scope.sensorState = this.color;
 					SendCommand ($http, scope.sensorId, (this.value == true) ? 1 : 0);
 				}
