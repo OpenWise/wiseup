@@ -43,16 +43,14 @@ angular.module('app').directive('sensor', function($http) {
                 break;
                 case SWITCH_TYPE:
                     angular.element(element[0].querySelector('.sensor-value')).html("");
+                    SendCommand ($http, scope.data.id, scope.data.value);
                 break;
             }
         }
     }
     
-    function SendCommand ($http, element) {
-        var currentName = angular.element(element[0].querySelector('.sensor-name')).html();
-        var currentValue = parseInt(angular.element(element[0].querySelector('.sensor-value')).html());
-
-        $http.get('http://10.0.0.15/api/sensors/' + currentName + '/' + (currentValue+1)%2).
+    function SendCommand ($http, sensorId, action) {
+        $http.get('http://10.0.0.15/api/sensors/' + sensorId + '/' + action).
             success(function(data, status, headers, config) {
             }).
             error(function(data, status, headers, config) {
@@ -83,11 +81,14 @@ angular.module('app').directive('toggleButton', function($http) {
 				color: "BLACK",
 				toggle: function() {
 					this.value = !this.value;
-                    this.color = (this.color == "BLACK") ? "RED" : "BLACK";
+                    this.color = (this.value == true) ? "RED" : "BLACK";
 					scope.sensorState = this.color;
 					SendCommand ($http, scope.sensorId, (this.value == true) ? 1 : 0);
 				}
 			};
+            
+            scope.sensorState = (scope.sensorVal == 1) ? "RED" : "BLACK";
+            scope.state.value = (scope.sensorVal == 1) ? true : false;
 		}
 	}
 	
