@@ -39,3 +39,11 @@
 }
 .sensor-action {
 }
+.sensor-bottom-menu {
+    position: relative;
+    top: 40px;
+}
+.to-the-right {
+    float:right;
+    position: relative;
+}

@@ -8,15 +8,22 @@
 				<div class="sensor-name pure-u-1-1">{{data.name}}</div>
 				<div class="pure-u-1-1">
 					<div class="pure-g">
-						<div class="sensor-action pure-u-1-2">
-							<button toggle-button sensor-id="{{data.id}}" sensor-val="{{data.value}}" active-text="On" inactive-text="Off" ng-model="sensor.state"></button>
+                        <div class="sensor-value pure-u-1-3">{{data.value}}</div>
+						<div class="pure-u-2-3">
+                            <div class="sensor-bottom-menu to-the-right pure-g" style="width:150px">
+                                <div class="sensor-action pure-u-2-3">
+                                    <button toggle-button sensor-id="{{data.id}}" sensor-val="{{data.value}}" active-text="On" inactive-text="Off" ng-model="sensor.state"></button>
+                                </div>
+                                <div class="pure-u-1-3">
+                                    <button class="sensor-fav pure-button">
+                                        <i class="fa fa-1x" ng-class="data.favorite ? 'fa-star' : 'fa-star-o'"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
 						</div>
-						<div class="sensor-value pure-u-1-2">{{data.value}}</div>
-						<!-- <div class="pure-u-1-3">
-							<button class="sensor-fav pure-button">
-								<i class="fa fa-1x" ng-class="data.favorite ? 'fa-star' : 'fa-star-o'"></i>
-							</button>
-						</div> -->
+						
+						
 					</div>
 				</div>
 			</div>
