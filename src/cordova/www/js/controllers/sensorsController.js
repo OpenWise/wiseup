@@ -25,4 +25,18 @@ angular.module('app').controller('sensorsController', function($scope, sensorsFa
             source.onmessage = eventSourceCallback(i);
         }
     });
+
+    $scope.doAction = function(sensor) {
+        console.log('do action');
+        var val = (sensor.value + 1) % 1;
+        sensorsFactory.doAction({
+            id: sensor.id,
+            action: val
+        });
+    }
+
+    $scope.toggleFavorite = function(sensor) {
+        console.log('toggle favorite');
+        sensorsService.toggleFavorite(sensor);
+    }
 });

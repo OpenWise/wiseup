@@ -28,7 +28,7 @@ var app = express();
 app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     next();
 });
 
@@ -52,8 +52,7 @@ apiRouter.route('/sensors').get(function(req, res) {
     });
 });
 
-// TODO - Change to POST request.
-apiRouter.route('/sensors/:id/:action').get(function(req, res) {
+apiRouter.route('/sensors/:id/:action').post(function(req, res) {
     var data_t = {
         id: req.param('id'),
         action: req.param('action')
@@ -61,8 +60,14 @@ apiRouter.route('/sensors/:id/:action').get(function(req, res) {
     var data = '{"id":' + req.param('id') + ',"action":' + req.param('action') + '}';
     console.log(data);
     console.log(data_t);
-    redis.Publish("SENSOR-ACTION", data, function(err, info) {}); // TODO error handling
-    res.end('ok');
+    // redis.Publish("SENSOR-ACTION", data);, function(err, info) {
+    //     if (err) {
+    //         console.error(err);
+    //         res.status(500).send(err.message);
+    //     } else {
+    res.json(data_t);
+    //     }
+    // });
 });
 
 var msgid = 0;
