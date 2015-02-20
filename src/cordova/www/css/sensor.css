@@ -1,48 +1,41 @@
 .sensor {
+    width:98%;
     margin: 3px;
     display: block;
-    height: 100px;
-    /*    border-style: solid;
-    border-color: #333333;
-    border-width: 2px;
-    border-radius: 5px;*/
-    
+    height: 70px;    
     position: relative;
-}
-.sensor-name {
-    font-size: 20px;
-    padding-bottom: 3px;
-}
-.sensor-value {
-    font-size: 40px;
 }
 .sensor-data {
     position: relative;
-    left: 83px;
 }
 .sensor-icon {
     position: relative;
     top: 0px;
     left: 3px;
     font-size: 12px;
-}
-.sensor-settings {
-    position: absolute;
-    top: 80px;
-    left: 40px;
+    color: #20668A;
 }
 .sensor-name {
     position: relative;
     top: 5px;
     left: 5px;
-    font-size: 20px;
+    font-size: 15px;
+}
+.sensor-value {
+    position: relative;
+    top: 10px;
+    left: 5px;
+    font-size: 30px;
 }
 .sensor-switch {
     font-size: 20px
 }
-.sensor-action {} .sensor-bottom-menu {
+.sensor-favorite {
+    color: #C9A11E;
+}
+.sensor-bottom-menu {
     position: relative;
-    top: 40px;
+    top: 15px;
 }
 .to-the-right {
     float: right;

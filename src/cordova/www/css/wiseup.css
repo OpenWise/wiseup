@@ -1,6 +1,19 @@
+.header {
+    position: fixed;
+    top: 0px;
+    bottom: 0px;
+    height: 100px;
+    overflow: hidden;
+    width: 100%;
+    background: url(../img/header-background.png) no-repeat center top;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover; 
+}
 .content {
     position: absolute;
-    top: 0px;
+    top: 110px;
     bottom: 60px;
     overflow: auto;
     width: 100%;
@@ -12,7 +25,7 @@
     width: 100%;
     overflow: hidden;
     text-align: center;
-    background-color: #5555ff;
+    #background-color: #20668A;
 }
 .footer-dktop {
     line-height: 60px;
@@ -31,13 +44,17 @@
     height: 100%;
     text-align: center;
     display: block;
-    color: black;
 }
 .menu-button:hover {
-    background-color: #3333ee;
 }
 .menu-button:visited {
     color: inherit;
+}
+.menu-button-link {
+    color:black;
+}
+.menu-button-link:hover {
+    color: #3333ee;
 }
 /* iPads (portrait and landscape) ----------- */
 

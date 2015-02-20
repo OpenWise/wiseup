@@ -52,22 +52,35 @@ apiRouter.route('/sensors').get(function(req, res) {
     });
 });
 
-apiRouter.route('/sensors/:id/:action').post(function(req, res) {
+apiRouter.route('/sensors/:id/:action').get(function(req, res) {
     var data_t = {
         id: req.param('id'),
         action: req.param('action')
     };
     var data = '{"id":' + req.param('id') + ',"action":' + req.param('action') + '}';
     console.log(data);
-    console.log(data_t);
-    // redis.Publish("SENSOR-ACTION", data);, function(err, info) {
-    //     if (err) {
-    //         console.error(err);
-    //         res.status(500).send(err.message);
-    //     } else {
+    
+    redis.Publish("SENSOR-ACTION", data, function(err, info) {
+        if (err) {
+            console.error("ERROR");
+            res.status(500).send(err.message);
+        } else {
+            console.error("GOOD");
+            res.json(data_t);
+        }
+    }); // TODO error handling
+    
     res.json(data_t);
-    //     }
-    // });
+    // res.end('ok');
+    
+    /*redis.Publish("SENSOR-ACTION", data, function(err, info) {
+        if (err) {
+            console.error(err);
+            res.status(500).send(err.message);
+        } else {
+            res.json(data_t);
+        }
+    });*/
 });
 
 var msgid = 0;

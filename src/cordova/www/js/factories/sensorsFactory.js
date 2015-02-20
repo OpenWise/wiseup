@@ -17,7 +17,7 @@ angular.module('app').factory('sensorsFactory', function($resource, sensorsServi
             }
         },
         doAction: {
-            method: "POST",
+            method: "GET",
             //url: serverService.server + "api/sensors/:id/:action",
             interceptor: {
                 response: function(response) {

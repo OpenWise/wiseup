@@ -28,7 +28,7 @@ angular.module('app').controller('sensorsController', function($scope, sensorsFa
 
     $scope.doAction = function(sensor) {
         console.log('do action');
-        var val = (sensor.value + 1) % 1;
+        var val = (parseInt(sensor.value) + 1) % 2;
         sensorsFactory.doAction({
             id: sensor.id,
             action: val

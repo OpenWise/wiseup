@@ -14,32 +14,8 @@ angular.module('app').directive('sensor', function($http) {
             onAction: '&',
             onToggleFavorite: '&'
         },
-        templateUrl: 'views/templates/sensor.html' //,
-            // link: function(scope, element, attrs) {
-            //     scope.onClickSensor = function(type) {
-            //         switch (type) {
-            //             case TEMPERATURE_TYPE:
-            //                 alert("TEMPERATURE_TYPE");
-            //                 break;
-            //             case LUMINANCE_TYPE:
-            //                 alert("LUMINANCE_TYPE");
-            //                 break;
-            //             case MOVEMENT_TYPE:
-            //                 alert("MOVEMENT_TYPE");
-            //                 break;
-            //             case SWITCH_TYPE:
-            //                 alert("SWITCH_TYPE");
-            //                 break;
-            //         }
-            //     }
-            // }
+        templateUrl: 'views/templates/sensor.html'
     }
-
-    // function SendCommand($http, sensorId, action) {
-    //     $http.get('http://10.0.0.15/api/sensors/' + sensorId + '/' + action).
-    //     success(function(data, status, headers, config) {}).
-    //     error(function(data, status, headers, config) {});
-    // }
 });
 
 angular.module('app').directive('toggleButton', function($http) {
