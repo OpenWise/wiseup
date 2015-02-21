@@ -11,7 +11,7 @@
 #define DISCOVERY_MODE_INTERVAL		                  120000
 #define DISCOVERY_MODE_TIMEOUT                            5000
 #define CONNECTED_MODE_READ_SENSORS_INTERVAL              1000
-#define CONNECTED_MODE_READ_SENSORS_AS_KEEPALIVE_INTERVAL 5000
+#define CONNECTED_MODE_READ_SENSORS_AS_KEEPALIVE_INTERVAL 20000
 
 #define DIGITAL_RELAY_ADDR_1    1
 #define DIGITAL_RELAY_ADDR_2    2
@@ -40,7 +40,7 @@ sensor_t mapping[] = {
   { DIGITAL_RELAY_ADDR_3,  DIGITAL_RELAY_PIN_3,  RELAY_SENSOR_TYPE, 0 , 5}
 };
 
-device_context_t device_context = { mapping, MAPPING_SIZE, DISCOVERY, 0, 0,
+device_context_t device_context = { mapping, MAPPING_SIZE, DISCOVERY, 0, 0, NO, 0,
                                     {0xFA, 0xFA, 0xFA, 0xFA, 0xFA}, 
                                     {0x05, 0x04, 0x03, 0x02, 0x02},
                                     {0xFA, 0xFA, 0xFA, 0xFA, 0xFA},
@@ -128,6 +128,21 @@ void loop () {
         // Send packet with sensors data
         send_sensors_data (&device_context, net);
         device_context.is_sync = NO;
+        
+        Serial.print ("(LED_CUBE)# Sensors : ");
+        Serial.print ((uint8_t)device_context.mapping_ptr[DIGITAL_RELAY_ADDR_1 - 1].value);
+        Serial.print (" ");
+        Serial.print ((uint8_t)device_context.mapping_ptr[DIGITAL_RELAY_ADDR_2 - 1].value);
+        Serial.print (" ");
+        Serial.println ((uint8_t)device_context.mapping_ptr[DIGITAL_RELAY_ADDR_3 - 1].value);
+      }
+      
+      if (device_context.is_res_ack == YES) {
+        device_context.mapping_ptr[device_context.res_ack_port - 1].value =
+          (uint16_t) read_digital_relay_info (device_context.mapping_ptr[device_context.res_ack_port - 1].pin);
+        delay (100);
+        send_sensors_data_with_ack (&device_context, net, device_context.res_ack_port);
+        device_context.is_res_ack = NO;
         
         Serial.print ("(LED_CUBE)# Sensors : ");
         Serial.print ((uint8_t)device_context.mapping_ptr[DIGITAL_RELAY_ADDR_1 - 1].value);

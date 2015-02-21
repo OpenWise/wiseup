@@ -10,7 +10,7 @@
 #include "common.h"
 
 void
-_send_sensors_data (device_context_t * context, WiseRFComm* network, uint8_t data_type) {
+_send_sensors_data (device_context_t* context, WiseRFComm* network, uint8_t data_type) {
   rfcomm_data*         nrfTXPacket           = (rfcomm_data *)network->tx_ptr;
   rfcomm_sensor_info*  next_sensor_info_slot = (rfcomm_sensor_info *)nrfTXPacket->data_frame.unframeneted.data;
   
@@ -65,15 +65,51 @@ _send_sensors_data (device_context_t * context, WiseRFComm* network, uint8_t dat
 }
 
 void
-send_sensors_data (device_context_t * context, WiseRFComm* network) {
+send_sensors_data (device_context_t* context, WiseRFComm* network) {
     _send_sensors_data (context, network, SENSOR_INFO_DATA_TYPE);
 }
 
 void
-send_sensors_data_no_auth (device_context_t * context, WiseRFComm* network) {
+send_sensors_data_no_auth (device_context_t* context, WiseRFComm* network) {
     _send_sensors_data (context, network, SENSOR_INFO_DATA_NO_AUTH_TYPE);
 }
 
+void
+send_sensors_data_with_ack (device_context_t* context, WiseRFComm* network, uint8_t index) {
+	rfcomm_data*         nrfTXPacket           = (rfcomm_data *)network->tx_ptr;
+	rfcomm_sensor_info*  sensor_info_slot = (rfcomm_sensor_info *)nrfTXPacket->data_frame.unframeneted.data;
+
+	memset (network->tx_ptr, 0, 32);
+	nrfTXPacket->data_information.data_size      = 0;
+	nrfTXPacket->control_flags.is_fragmeneted    = NO;
+	nrfTXPacket->control_flags.version			 = RFCOMM_VERSION;
+	nrfTXPacket->control_flags.is_broadcast      = NO;
+	nrfTXPacket->control_flags.is_ack      		 = YES;
+	nrfTXPacket->data_information.data_type      = SENSOR_INFO_DATA_TYPE;
+	nrfTXPacket->sender_information.sender_type  = SENDER_SENSOR_LOCAL_HUB;
+
+	uint8_t magic[] = {0xAA, 0xBB};
+	memcpy (&(nrfTXPacket->magic_number), magic, 2);
+	memcpy (nrfTXPacket->sender, context->local_address, 5);
+	memcpy (nrfTXPacket->target, context->server_address, 5);
+
+	Serial.println (index);
+	sensor_t* sensor_info = &(context->mapping_ptr[index - 1]);
+	/* Fill the sensor info fields */
+	uint8_t* data_ptr = (uint8_t *)sensor_info_slot;
+	sensor_info_slot->sensor_address   			= sensor_info->address;
+	sensor_info_slot->sensor_type      			= sensor_info->type;
+	sensor_info_slot->sensor_update_interval 	= sensor_info->sensor_update_interval;
+	sensor_info_slot->sensor_data_len  			= 0x1;
+	data_ptr += SENSOR_INFO_DATA_SIZE;
+	/* Add to the end of the sensor info fields the sensor data */
+	*data_ptr = (uint8_t)sensor_info->value;
+	/* Add the sensor data and info size to the packet info */
+	nrfTXPacket->data_information.data_size   = (SENSOR_INFO_DATA_SIZE + sensor_info_slot->sensor_data_len);
+	network->sendPacket (context->server_address);
+	Serial.println ("(TLM)# Sending DATA sensor (ACK)");
+	printBuffer (">>>>>> ", (uint8_t *)nrfTXPacket, 32);
+}
 
 // TODO - Handle the sensor_update_interval and only one sensor can e sent in one packet.
 void

@@ -30,14 +30,15 @@ nrf24l01_receiver_handler (rfcomm_data* nrfRXPacket, device_context_t * device_i
               (rfcomm_sensor_command *)nrfRXPacket->data_frame.unframeneted.data;
     switch (sensorCmd->command_type) {
       case SENSOR_CMD_RELAY:
-        for (int i = 0; i < device_info->mapping_size; i++) {
-          if (device_info->mapping_ptr[i].address == sensorCmd->sensor_address) {
-            write_digital_relay_info (device_info->mapping_ptr[i].pin, sensorCmd->command_data[0]);
+        // for (int i = 0; i < device_info->mapping_size; i++) {
+        //   if (device_info->mapping_ptr[i].address == sensorCmd->sensor_address) {
+            write_digital_relay_info (device_info->mapping_ptr[sensorCmd->sensor_address - 1].pin, sensorCmd->command_data[0]);
             // Send response back
-            device_info->is_sync = YES;
-            return;
-          }
-        }
+            device_info->is_res_ack = YES;
+			device_info->res_ack_port = sensorCmd->sensor_address;
+        //    return;
+        //  }
+        //}
         break;
       case SENSOR_CMD_RELAY_RGB:
         break;

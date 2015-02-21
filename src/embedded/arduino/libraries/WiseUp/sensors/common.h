@@ -27,6 +27,8 @@ typedef struct device_context_info {
   device_status_t   state;
   uint8_t           xor_sensors_value;
   uint8_t           is_sync;
+  uint8_t			is_res_ack;
+  uint8_t			res_ack_port;
   uint8_t           server_address[5];
   uint8_t           local_address[5];
   uint8_t           broadcast_address[5];

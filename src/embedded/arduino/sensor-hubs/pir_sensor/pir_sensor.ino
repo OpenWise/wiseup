@@ -13,8 +13,8 @@
 #define CONNECTED_MODE_READ_SENSORS_INTERVAL              1000
 #define CONNECTED_MODE_READ_SENSORS_AS_KEEPALIVE_INTERVAL 30000
 
-#define ANALOG_LDR_ADDR             1
-#define ANALOG_LDR_PIN              1
+#define DIGITAL_PIR_ADDR            1
+#define DIGITAL_PIR_PIN             4
 uint16_t  last_value = 0;
 
 uint8_t rx[32];
@@ -31,12 +31,12 @@ rfcomm_sensor_info*	next_sensor_info_slot 	  = NULL;
 
 #define MAPPING_SIZE    1
 sensor_t mapping[] = {
-  { ANALOG_LDR_ADDR, ANALOG_LDR_PIN, LUMINANCE_SENSOR_TYPE, 0, 30 }
+  { DIGITAL_PIR_ADDR, DIGITAL_PIR_PIN, PIR_SENSOR_TYPE, 0, 30 }
 };
 
 device_context_t device_context = { mapping, MAPPING_SIZE, DISCOVERY, 0, 0, NO, 0,
                                     {0xFA, 0xFA, 0xFA, 0xFA, 0xFA}, 
-                                    {0x05, 0x04, 0x03, 0x02, 0x01},
+                                    {0x05, 0x04, 0x03, 0x02, 0x03},
                                     {0xFA, 0xFA, 0xFA, 0xFA, 0xFA},
                                     millis(), millis(), millis(), millis() };
 
@@ -63,10 +63,12 @@ void setup () {
   net->setDataHandler (network_layer_data_arrived_handler);
   net->setBroadcastHandler (network_layer_broadcast_arrived_handler);
   
+  pinMode (device_context.mapping_ptr[DIGITAL_PIR_ADDR - 1].pin,   INPUT);
+  
   nrfRXPacket = (rfcomm_data *)net->rx_ptr;
   nrfTXPacket = (rfcomm_data *)net->tx_ptr;
   
-  Serial.println("(LDR)# Initialized...");
+  Serial.println("(PIR)# Initialized...");
 }
 
 void loop () {
@@ -74,7 +76,7 @@ void loop () {
   
   // Change to DISCOVERY mode
   if (abs (millis () - device_context.discovery_interval) > DISCOVERY_MODE_INTERVAL) {
-    Serial.println ("(LDR)# Change MODE (DISCOVERY)");
+    Serial.println ("(PIR)# Change MODE (DISCOVERY)");
     device_context.state = DISCOVERY;
     device_context.discovery_interval = millis ();
   }
@@ -83,9 +85,10 @@ void loop () {
   switch (device_context.state) {
     case DISCOVERY:
       if (abs (millis () - device_context.discovery_timeout) > DISCOVERY_MODE_TIMEOUT) {
-        Serial.println ("(LDR)# DISCOVERY");
+        Serial.println ("(PIR)# DISCOVERY");
         device_context.state = DISCOVERY;
         memcpy (device_context.server_address, device_context.broadcast_address, 5);
+        delay (100);
         // Send DISCOVERY packet
         send_discovery (&device_context, net);
         device_context.discovery_timeout = millis ();
@@ -94,17 +97,14 @@ void loop () {
     case CONNECTED:
       // Read sensors data each second
       if (abs (millis () - device_context.connected_read_sensors_interval) > CONNECTED_MODE_READ_SENSORS_INTERVAL) {
-        Serial.println ("(LDR)# CONNECTED");
-        device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value = 30 +
-                  data_noise_reduse( device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value,
-                                    (uint16_t) read_analog_luminance_info (device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].pin, YES), 2);
-        device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value = 
-                  (device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value < 100) ? device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value : 100;
+        Serial.println ("(PIR)# CONNECTED");
+        device_context.mapping_ptr[DIGITAL_PIR_ADDR - 1].value = 
+                  (uint16_t) read_digital_pir_info (device_context.mapping_ptr[DIGITAL_PIR_ADDR - 1].pin);
                   
         // Check for changes
-        device_context.is_sync = check_sensors_change (&device_context) && ((abs(last_value - device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value) > 4) ? 0x1 : 0x0);
+        device_context.is_sync = check_sensors_change (&device_context);
         device_context.connected_read_sensors_interval = millis ();
-        last_value = device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value;
+        last_value = device_context.mapping_ptr[DIGITAL_PIR_ADDR - 1].value;
       }
       
       if (abs (millis () - device_context.connected_read_sensors_as_keepalive_interval) > CONNECTED_MODE_READ_SENSORS_AS_KEEPALIVE_INTERVAL) {
@@ -117,8 +117,8 @@ void loop () {
         send_sensors_data (&device_context, net);
         device_context.is_sync = NO;
         
-        Serial.print ("(LDR)# Value : ");
-        Serial.println ((uint8_t)device_context.mapping_ptr[ANALOG_LDR_ADDR - 1].value);
+        Serial.print ("(PIR)# Value : ");
+        Serial.println ((uint8_t)device_context.mapping_ptr[DIGITAL_PIR_ADDR - 1].value);
       }
     break;
   }
