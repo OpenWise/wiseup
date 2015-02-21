@@ -13,7 +13,7 @@
     top: 0px;
     left: 3px;
     font-size: 12px;
-    color: #20668A;
+    color: #7cc1df ;
 }
 .sensor-name {
     position: relative;
@@ -31,11 +31,19 @@
     font-size: 20px
 }
 .sensor-favorite {
-    color: #C9A11E;
+    top: 5px;
+    left: 3px;
+    color: #fff700;
+}
+.sensor-unfavorite {
+    top: 5px;
+    left: 3px;
+    color: #BABABA;
 }
 .sensor-bottom-menu {
     position: relative;
     top: 15px;
+    right: 15px;
 }
 .to-the-right {
     float: right;
@@ -43,7 +51,7 @@
 }
 .onoffswitch {
     position: relative;
-    width: 90px;
+    width: 80px;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
@@ -55,7 +63,8 @@
     display: block;
     overflow: hidden;
     cursor: pointer;
-    border: 2px solid #000;
+    #border: 2px solid #000;
+    border: 1px #000;
     border-radius: 20px;
 }
 .onoffswitch-inner {
@@ -85,23 +94,23 @@
 .onoffswitch-inner:before {
     content: "ON";
     padding-left: 10px;
-    background-color: #34A7C1;
+    background-color: #7cc1df;
     color: #FFFFFF;
 }
 .onoffswitch-inner:after {
     content: "OFF";
     padding-right: 10px;
-    background-color: #EEEEEE;
+    background-color: #BABABA;
     color: #000;
     text-align: right;
 }
 .onoffswitch-switch {
     display: block;
-    width: 33px;
+    width: 28px;
     margin: -1.5px;
     background: #FFFFFF;
-    border: 2px solid #000;
-    border-radius: 20px;
+    border: 1px solid #9E9E9E;
+    border-radius: 12px;
     position: absolute;
     top: 0;
     bottom: 0;

@@ -13,19 +13,20 @@
 }
 .content {
     position: absolute;
-    top: 110px;
-    bottom: 60px;
+    top: 70px;
+    bottom: 0px;
     overflow: auto;
     width: 100%;
 }
 .footer {
     position: fixed;
+    top: 0px;
     bottom: 0px;
     height: 60px;
     width: 100%;
     overflow: hidden;
     text-align: center;
-    #background-color: #20668A;
+    background-color: #7cc1df;
 }
 .footer-dktop {
     line-height: 60px;
@@ -51,7 +52,7 @@
     color: inherit;
 }
 .menu-button-link {
-    color:black;
+    color: #ffffff;
 }
 .menu-button-link:hover {
     color: #3333ee;

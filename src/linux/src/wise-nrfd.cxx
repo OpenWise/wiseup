@@ -33,6 +33,7 @@
 #include "hiredis.h"
 #include "async.h"
 #include "adapters/libevent.h"
+#include "nrfTaskMng.h"
 
 using namespace std;
 
@@ -45,7 +46,7 @@ comm::NRF24L01*			sensor 	       		= NULL;
 comm::WiseRFComm*		net                	= NULL;
 WiseClientHandler*		clientHandler      	= NULL;
 WiseCommandHandler*		cmdHandler         	= NULL;
-// nrfActionTaskMng*   	wiseNRFActionTask   = NULL;
+nrfActionTaskMng*   	wiseNRFActionTask   = NULL;
 screen_context      	deviceScreenCtx;
 redisContext*			redisCtx			= NULL;
 pthread_t       		ipcNRFOutListenerThread;
@@ -53,6 +54,11 @@ pthread_t       		redisSubscriberThread;
 
 void
 dataHandling (rfcomm_data * packet) {
+    // Check the packet for is_ack and remove from tasks list
+    if (packet->control_flags.is_ack == YES) {
+        printf ("------------------------------------- WITH ACK\n");
+        wiseNRFActionTask->apiRemoveTask(WiseClientHandler::getSensorAddress (packet));
+    }
     wise_status_t deviceStatus = clientHandler->registrationCheck (packet); // Chick the registration ID.
     if (deviceStatus == DISCOVERY) {
 		clientHandler->addNewClient (packet->sender); // Add new client to local DB
@@ -132,6 +138,11 @@ outgoingMessageListener (void *) {
                                                 msg.packet.sender[4]);
 												
             close (client);
+            
+            if (msg.features.with_ack == YES) {
+                sensor_info_t sensor = {msg.sensorAddress};
+                wiseNRFActionTask->apiAddTask (sensor, &msg.packet);
+            }
         }
     } catch (FFError e) {
         std::cout << e.Label.c_str() << std::endl;
@@ -224,6 +235,11 @@ main (int argc, char **argv)
     if (error) {
         exit(EXIT_FAILURE);
     }
+    
+    wiseNRFActionTask = new nrfActionTaskMng (2000000);
+    if (!wiseNRFActionTask->start()) { 
+        exit (EXIT_FAILURE);
+    }
 		
 	printf("Initiating nrf24l01...\n");
     sensor 	= new comm::NRF24L01 (17, 22); // Initiating nRF24l01 layer (hardware)
@@ -234,6 +250,9 @@ main (int argc, char **argv)
 	while (!running) {
         net->listenForIncoming ();
 	}
+    
+    wiseNRFActionTask->stop ();
+    delete wiseNRFActionTask;
     
 	pthread_exit (NULL);
 	redisFree(redisCtx);

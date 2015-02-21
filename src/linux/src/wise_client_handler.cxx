@@ -240,6 +240,8 @@ WiseClientHandler::sendSensorCommand (long long sensorAddr, int cmd) {
 	
 	nrf24l01_msg_t msg;
 	memcpy (&msg.packet, &wisePacketTX, 32);
+    msg.features.with_ack   = YES;
+    msg.sensorAddress       = sensorAddr;
 	
 	// Send to OUTGOING queue
     WiseIPC *ipcPacketsOut = new WiseIPC ("/tmp/wiseup/nrf_outgoing_queue");
@@ -247,7 +249,7 @@ WiseClientHandler::sendSensorCommand (long long sensorAddr, int cmd) {
         ipcPacketsOut->setBuffer((uint8_t *)&msg);
         if (ipcPacketsOut->sendMsg(sizeof (nrf24l01_msg_t)) == false) { 
 		} else {
-        	printf ("(WiseClientHandler) [sendSensorCommand] Registration for  [%d %d %d %d %d]\n", 
+        	printf ("(WiseClientHandler) [sendSensorCommand] Action for  [%d %d %d %d %d]\n", 
                                                 wisePacketTX.target[0], wisePacketTX.target[1], 
                                                 wisePacketTX.target[2], wisePacketTX.target[3], 
                                                 wisePacketTX.target[4]);

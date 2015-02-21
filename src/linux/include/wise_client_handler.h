@@ -72,6 +72,16 @@ class WiseClientHandler {
 		void			addNewClient (uint8_t* address);
         WiseClient*     findClient (uint8_t * address);
 		void			printClentInfo ();
+        
+        static long long
+        getSensorAddress (rfcomm_data* packet) {
+            rfcomm_sensor_info* sensor_info = (rfcomm_sensor_info *)packet->data_frame.unframeneted.data;
+            long long sensorAddress = 0;
+            
+            memcpy (&sensorAddress, packet->sender, 5);
+            sensorAddress = (sensorAddress << 8) | sensor_info->sensor_address;
+            return sensorAddress;
+        }
 		
 		sync_context_t	lock;
 

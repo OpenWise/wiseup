@@ -15,7 +15,7 @@
 #include "commonMethods.hpp"
 
 typedef struct {
-	sensor_info_t* 			sensor;
+	sensor_info_t 			sensor;
 	rfcomm_data 			packet;
 	uint16_t				timestamp;	
 } nrf_action_task;
@@ -25,7 +25,7 @@ public:
 	nrfActionTaskMng (uint64_t interval);
 	~nrfActionTaskMng ();
 
-	void apiAddTask (sensor_info_t* sensor, rfcomm_data* packet);
+	void apiAddTask (sensor_info_t sensor, rfcomm_data* packet);
 	void apiRemoveTask (long long sensorAddress);
 
 	bool start ();

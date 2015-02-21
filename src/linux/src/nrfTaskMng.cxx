@@ -30,39 +30,30 @@ nrfActionTaskExecuterWorker (void * args) {
 		if (obj->m_tasks.size() > 0) {
 			for (std::vector<nrf_action_task>::iterator item = obj->m_tasks.begin(); item != obj->m_tasks.end(); ++item) {
 				if (CommonMethods::getTimestampMillis() - item->timestamp > obj->m_interval) {
-					if (item->sensor != NULL) {
-						if (item->sensor->value.sensorHWValue != item->sensor->value.sensorUIValue) {
-							/* Send to OUTGOING queue */
-						    WiseIPC *ipcPacketsOut = new WiseIPC ("/tmp/wiseup/nrf_outgoing_queue");
-						    if (ipcPacketsOut->setClient () == SUCCESS) {
-						        ipcPacketsOut->setBuffer((unsigned char *)&item->packet);
-						        if (ipcPacketsOut->sendMsg(32) == false) { }
-						        else {
-						        	printf ("(nrfActionTaskMng) [nrfActionTaskExecuterWorker] RESENDING TO [%d %d %d %d %d]\n", 
-						                                                item->packet.target[0], item->packet.target[1], 
-						                                                item->packet.target[2], item->packet.target[3], 
-						                                                item->packet.target[4]);
-						        }
-						    }
+                    // TODO resend packet
+                    nrf24l01_msg_t msg;
+                    memcpy (&msg.packet, &item->packet, 32);
+                    msg.features.with_ack = NO;
+                    item->timestamp = CommonMethods::getTimestampMillis();
+                    
+                    // Send to OUTGOING queue
+                    WiseIPC *ipcPacketsOut = new WiseIPC ("/tmp/wiseup/nrf_outgoing_queue");
+                    if (ipcPacketsOut->setClient () == SUCCESS) {
+                        ipcPacketsOut->setBuffer((uint8_t *)&msg);
+                        if (ipcPacketsOut->sendMsg(sizeof (nrf24l01_msg_t)) == false) { 
+                        } else {
+                            printf ("(WiseClientHandler) [sendSensorCommand] RESEND for  [%d %d %d %d %d]\n", 
+                                                                msg.packet.target[0], msg.packet.target[1], 
+                                                                msg.packet.target[2], msg.packet.target[3], 
+                                                                msg.packet.target[4]);
+                        }
+                    }
 
-						    delete ipcPacketsOut;
-						} else {
-							printf ("(nrfActionTaskMng) [nrfActionTaskExecuterWorker] REMOVING FOR [%d %d %d %d %d]\n", 
-						                                                item->packet.target[0], item->packet.target[1], 
-						                                                item->packet.target[2], item->packet.target[3], 
-						                                                item->packet.target[4]);
-							isDelete 	  = true;
-							indexToDelete = item;
-						}
-					}
+                    delete ipcPacketsOut;
 				}
 			}
 		}
 		
-		if (isDelete) {
-			obj->m_tasks.erase (indexToDelete);
-			isDelete = false;
-		}
 		pthread_mutex_unlock (&obj->m_lock.mutex);
 		usleep (obj->m_interval);
 	}
@@ -87,13 +78,13 @@ nrfActionTaskMng::stop () {
 }
 
 void
-nrfActionTaskMng::apiAddTask (sensor_info_t* sensor, rfcomm_data* packet) {
+nrfActionTaskMng::apiAddTask (sensor_info_t sensor, rfcomm_data* packet) {
 	nrf_action_task task;
 	task.sensor = sensor;
 	task.timestamp = CommonMethods::getTimestampMillis();
 	memcpy (&task.packet, packet, sizeof (rfcomm_data));
 
-	printf ("(nrfActionTaskMng) [apiAddTask] ADDING TO RESEND (%lld)\n", sensor->sensorAddress);
+	printf ("(nrfActionTaskMng) [apiAddTask] ADDING TO RESEND (%lld)\n", sensor.sensorAddress);
 
 	pthread_mutex_lock (&m_lock.mutex);
 	m_tasks.push_back (task);
@@ -103,8 +94,10 @@ nrfActionTaskMng::apiAddTask (sensor_info_t* sensor, rfcomm_data* packet) {
 void
 nrfActionTaskMng::apiRemoveTask (long long sensorAddress) {
 	pthread_mutex_lock (&m_lock.mutex);
+    printf ("(nrfActionTaskMng) [apiRemoveTask] REMOVE %lld\n", sensorAddress);
 	for (std::vector<nrf_action_task>::iterator item = m_tasks.begin(); item != m_tasks.end(); ++item) {
-		if (item->sensor->sensorAddress == sensorAddress) {
+		if (item->sensor.sensorAddress == sensorAddress) {
+            printf ("(nrfActionTaskMng) [apiRemoveTask] REMOVE\n");
 			m_tasks.erase (item);
 			pthread_mutex_unlock (&m_lock.mutex);
 			return;

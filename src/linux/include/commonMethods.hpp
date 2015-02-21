@@ -44,6 +44,7 @@ typedef struct {
 
 typedef struct { 
     long long           sensorAddress;
+    /* Saved for later use.
     long long           hubAddress;
     uint8_t             sensorPort;
     uint8_t             sensorType;
@@ -51,7 +52,7 @@ typedef struct {
     sensor_value_t      backup;
     uint64_t            lastUpdate;
     sensor_control_t    flags;
-    uint16_t            updateInterval;
+    uint16_t            updateInterval; */
 } sensor_info_t;
 
 typedef struct {
@@ -60,6 +61,7 @@ typedef struct {
 } nrf24l01_msg_flag_t;
 
 typedef struct {
+    long long           sensorAddress;
     rfcomm_data     	packet;
     uint64_t    		timestamp;
 	nrf24l01_msg_flag_t	features;		

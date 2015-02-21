@@ -86,7 +86,7 @@ struct rfcomm_data {
 	};
 	
 	struct sender_info {
-		uint8_t sender_type	: 5;
+		uint8_t sender_type	    : 5;
 		uint8_t reserved		: 3;
 	};
 	

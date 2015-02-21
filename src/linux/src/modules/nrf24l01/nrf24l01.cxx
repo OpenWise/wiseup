@@ -35,16 +35,25 @@ nrfRecieveHandler (void * arg) {
 	WiseRFComm*		obj 				= (WiseRFComm*) arg;
 	uint8_t         BROADCAST_ADDR[5]   = {0xFA, 0xFA, 0xFA, 0xFA, 0xFA};
 	rfcomm_data *   packet              = (rfcomm_data *)obj->m_network->m_rxBuffer;
+    
+    printf ("(nrf24l01) [nrfRecieveHandler] >>>>>> GOT RF <<<<<< \n");
+    printf (">>>>>>> ");
+    for (int i = 0; i < 32; i++) {
+        printf ("%x ", ((uint8_t *)packet)[i]);
+    }
+    printf ("\n");
 
 	if (packet->magic_number[0] == 0xAA && packet->magic_number[1] == 0xBB) {
-		/* BROADCASR PACKET */
+		/* BROADCAST PACKET */
 		if (!memcmp (BROADCAST_ADDR, packet->target, 5)) {
+            printf ("(nrf24l01) [nrfRecieveHandler] >>>>>> BROADCAST <<<<<< \n");
 			obj->m_BroadcastHandler (obj->m_network->m_rxBuffer);
 			obj->m_broadcastPacketCounter++;
 		}
 		
 		/* UNICAST PACKET */
 		if (!memcmp (obj->m_sender, packet->target, 5)) {
+            printf ("(nrf24l01) [nrfRecieveHandler] >>>>>> UNICAST <<<<<< \n");
 			obj->m_DataHandler (obj->m_network->m_rxBuffer);
 			obj->m_dataPacketCounter++;
 		}
