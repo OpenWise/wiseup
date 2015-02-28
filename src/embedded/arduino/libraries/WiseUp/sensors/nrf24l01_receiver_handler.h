@@ -17,6 +17,7 @@ nrf24l01_receiver_handler (rfcomm_data* nrfRXPacket, device_context_t * device_i
     if (prot->device_cmd == DEVICE_PROT_CONNECT_ADDR) {
       memcpy (device_info->server_address, prot->device_data, 5);
       Serial.println ("(TLM)# Change MODE (CONNECTED)");
+	  delay (1000); // Let the  MCU pause for one seconds.
       device_info->state               = CONNECTED;
       device_info->discovery_interval  = millis ();
     }
@@ -29,16 +30,11 @@ nrf24l01_receiver_handler (rfcomm_data* nrfRXPacket, device_context_t * device_i
     rfcomm_sensor_command* sensorCmd = 
               (rfcomm_sensor_command *)nrfRXPacket->data_frame.unframeneted.data;
     switch (sensorCmd->command_type) {
-      case SENSOR_CMD_RELAY:
-        // for (int i = 0; i < device_info->mapping_size; i++) {
-        //   if (device_info->mapping_ptr[i].address == sensorCmd->sensor_address) {
+      case SENSOR_CMD_RELAY:	
             write_digital_relay_info (device_info->mapping_ptr[sensorCmd->sensor_address - 1].pin, sensorCmd->command_data[0]);
             // Send response back
             device_info->is_res_ack = YES;
 			device_info->res_ack_port = sensorCmd->sensor_address;
-        //    return;
-        //  }
-        //}
         break;
       case SENSOR_CMD_RELAY_RGB:
         break;
